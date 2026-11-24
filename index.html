@@ -134,8 +134,8 @@
                 <input type="text" id="inc-new-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
               </div>
               <div>
-                <label for="inc-new-bets" class="block text-[11px] font-bold text-slate-600 mb-1">No. Bets (Pola AABBCC)</label>
-                <input type="text" id="inc-new-bets" oninput="onIncomingBetsOrProductChange('bets')" onkeyup="onIncomingBetsOrProductChange('bets')" onchange="onIncomingBetsOrProductChange('bets')" autocomplete="off" autocapitalize="characters" placeholder="Misal: 610426 atau TRIAL-01" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+                <label for="inc-new-bets" class="block text-[11px] font-bold text-slate-600 mb-1">No. Bets (Pola AABBC)</label>
+                <input type="text" id="inc-new-bets" oninput="onIncomingBetsOrProductChange('bets')" onkeyup="onIncomingBetsOrProductChange('bets')" onchange="onIncomingBetsOrProductChange('bets')" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046 atau TRIAL-01" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
               </div>
             </div>
             <div id="inc-bets-detect-badge" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
@@ -247,8 +247,8 @@
             <input type="text" id="bm-release-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
           <div>
-            <label for="bm-batch-no" class="block text-xs font-bold text-slate-700 mb-1">No. Bets (AABBCC)</label>
-            <input type="text" id="bm-batch-no" oninput="onBatchModalBetsInput(this.value)" onkeyup="onBatchModalBetsInput(this.value)" onchange="onBatchModalBetsInput(this.value)" autocomplete="off" autocapitalize="characters" placeholder="Misal: 610426" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+            <label for="bm-batch-no" class="block text-xs font-bold text-slate-700 mb-1">No. Bets (AABBC)</label>
+            <input type="text" id="bm-batch-no" oninput="onBatchModalBetsInput(this.value)" onkeyup="onBatchModalBetsInput(this.value)" onchange="onBatchModalBetsInput(this.value)" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
           <div>
             <div class="flex items-center justify-between mb-1">
@@ -305,14 +305,14 @@
   </div>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 4: MASTER PRODUK DATABASE (AABBCC + NON-AABBCC)                   -->
+  <!-- MODAL 4: MASTER PRODUK DATABASE (AABBC + NON-AABBC)                   -->
   <!-- ======================================================================= -->
   <div id="master-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="master-modal-title">
     <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
       <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
         <div>
-          <h3 id="master-modal-title" class="text-base font-bold">Master Produk & Deteksi Kode AABBCC</h3>
-          <p class="text-xs text-slate-300 mt-0.5">Kode 2 karakter awal (<b>AA</b>) bersifat opsional; produk non-AABBCC tetap bebas diinput dengan nama produk</p>
+          <h3 id="master-modal-title" class="text-base font-bold">Master Produk & Deteksi Kode AABBC</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Kode 2 karakter awal (<b>AA</b>) bersifat opsional; produk non-AABBC tetap bebas diinput dengan nama produk</p>
         </div>
         <button type="button" onclick="closeMasterModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
       </div>
@@ -328,7 +328,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label for="mp-code-aa" class="block text-xs font-bold text-slate-700 mb-1">Kode Produk AA (Opsional, 2 Karakter)</label>
-              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 atau AB (kosongkan jika non-AABBCC)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 atau AB (kosongkan jika non-AABBC)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
             <div class="sm:col-span-2">
               <label for="mp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
@@ -901,14 +901,14 @@
           {
             id: "prod-5",
             codeAA: "",
-            name: "Produk Trial / Ekspor Khusus (Non-AABBCC)",
+            name: "Produk Trial / Ekspor Khusus (Non-AABBC)",
             defaultDocs: ["PP", "KP", "KS", "QC", "MC"]
           }
         ];
       }
 
       /* =====================================================================
-         2B. HYBRID AABBCC AUTO-DETECT & MASTER PRODUK ENGINE
+         2B. HYBRID AABBC AUTO-DETECT & MASTER PRODUK ENGINE
          ===================================================================== */
       let masterProducts = [];
       let editingProductId = null;
@@ -955,7 +955,13 @@
         return masterProducts.find(p => String(p.codeAA || "").trim().toUpperCase() === cleanAA) || null;
       }
 
-      // Evaluates No. Bets with pattern AABBCC (6 chars: AA=code, BB=batch seq, CC=year 20YY)
+      // Evaluates No. Bets dengan pola AABBC (5 karakter: AA = kode produk, BB = nomor urut batch, C = angka terakhir tahun berjalan)
+      function currentYearInfo() {
+        const d = String(normalizeDateStr(activeDateStr) || getSystemTodayStr());
+        const year = d.slice(0, 4);
+        return { year, digit: year.slice(-1), decade: year.slice(0, 3) };
+      }
+
       function detectBetsPattern(rawBets) {
         const trimmed = String(rawBets || "").trim();
         if (!trimmed) {
@@ -972,11 +978,11 @@
           };
         }
 
-        // Abaikan spasi / tanda hubung / garis miring / titik saat mencocokkan pola (61-04-26 = 610426)
+        // Abaikan spasi / tanda hubung / garis miring / titik saat mencocokkan pola (61-04-6 = 61046)
         const compact = trimmed.replace(/[\s\-_/.]/g, "");
 
         // Masih mengetik (1-5 karakter): beri umpan balik langsung
-        if (/^[A-Za-z0-9]{1,5}$/.test(compact)) {
+        if (/^[A-Za-z0-9]{1,4}$/.test(compact)) {
           const partialAA = compact.length >= 2 ? compact.slice(0, 2).toUpperCase() : "";
           const hit = partialAA ? findProductByCodeAA(partialAA) : null;
           return {
@@ -988,19 +994,21 @@
             yearFull: "",
             matchedProduct: null,
             badgeText: hit
-              ? `Kode ${partialAA} dikenali (${hit.name}) — lengkapi hingga 6 karakter (${compact.length}/6).`
-              : `Ketik 6 karakter AABBCC (${compact.length}/6). Dua karakter pertama = kode AA produk.`,
+              ? `Kode ${partialAA} dikenali (${hit.name}) — lengkapi hingga 5 karakter (${compact.length}/5).`
+              : `Ketik 5 karakter AABBC (${compact.length}/5): AA = kode produk, BB = urutan batch, C = angka tahun.`,
             badgeClass: "bg-amber-50 text-amber-800 border-amber-200"
           };
         }
 
         // Match 6 alphanumeric characters: AA (2), BB (2), CC (2)
-        const match6 = compact.match(/^([A-Za-z0-9]{2})([A-Za-z0-9]{2})([A-Za-z0-9]{2})$/);
+        const match6 = compact.match(/^([A-Za-z0-9]{2})([A-Za-z0-9]{2})([0-9])$/);
         if (match6) {
           const aa = match6[1].toUpperCase();
           const bb = match6[2].toUpperCase();
           const cc = match6[3].toUpperCase();
-          const yearFull = /^\d{2}$/.test(cc) ? `20${cc}` : cc;
+          const yi = currentYearInfo();
+          const yearFull = `${yi.decade}${cc}`;
+          const yearNote = cc !== yi.digit ? ` ⚠ angka tahun ${cc} berbeda dengan tahun berjalan (${yi.digit})` : "";
           const matched = findProductByCodeAA(aa);
 
           if (matched) {
@@ -1012,7 +1020,7 @@
               cc,
               yearFull,
               matchedProduct: matched,
-              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (Bets #${bb}, Thn ${yearFull})`,
+              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (Bets #${bb}, Thn ${yearFull})${yearNote}`,
               badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200"
             };
           }
@@ -1025,20 +1033,20 @@
             cc,
             yearFull,
             matchedProduct: null,
-            badgeText: `Pola AABBCC terdeteksi (AA: ${aa}, Bets #${bb}, Thn ${yearFull}) — kode ${aa} belum ada di Master Produk. Pilih atau ketik Nama Produk secara manual.`,
+            badgeText: `Pola AABBC terdeteksi (AA: ${aa}, Bets #${bb}, Thn ${yearFull})${yearNote} — kode ${aa} belum ada di Master Produk. Pilih atau ketik Nama Produk secara manual.`,
             badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
           };
         }
 
         return {
-          state: "NON_AABBCC",
+          state: "NON_AABBC",
           isPattern6: false,
           aa: "",
           bb: "",
           cc: "",
           yearFull: "",
           matchedProduct: null,
-          badgeText: "Bukan pola 6 karakter AABBCC (mis. 610426), jadi nama produk tidak terisi otomatis. Tetap bisa lanjut: pilih dari daftar atau ketik Nama Produk.",
+          badgeText: "Bukan pola 5 karakter AABBC (mis. 61046; C = angka tahun), jadi nama produk tidak terisi otomatis. Tetap bisa lanjut: pilih dari daftar atau ketik Nama Produk.",
           badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
         };
       }
@@ -1999,8 +2007,7 @@
 
         const betsInput = document.getElementById("inc-new-bets");
         if (prod.codeAA && !betsInput.value.trim()) {
-          const yr = String(normalizeDateStr(activeDateStr) || getSystemTodayStr()).slice(2, 4);
-          betsInput.value = `${String(prod.codeAA).toUpperCase()}01${yr}`;
+          betsInput.value = `${String(prod.codeAA).toUpperCase()}01${currentYearInfo().digit}`;
           updateIncomingBetsUi(false);
         }
       }
@@ -2440,8 +2447,7 @@
         lastAutoDetectedName = prod.name;
         document.getElementById("bm-batch-name").value = prod.name;
         if (prod.codeAA && !String(formDraft.batchNo || "").trim()) {
-          const yr = String(normalizeDateStr(activeDateStr) || getSystemTodayStr()).slice(2, 4);
-          formDraft.batchNo = `${String(prod.codeAA).toUpperCase()}01${yr}`;
+          formDraft.batchNo = `${String(prod.codeAA).toUpperCase()}01${currentYearInfo().digit}`;
           document.getElementById("bm-batch-no").value = formDraft.batchNo;
         }
         syncDraftBatchName();
@@ -2926,7 +2932,7 @@
           return;
         }
         if (codeAA && codeAA.length !== 2) {
-          showToast("Kode AA harus tepat 2 karakter (atau dikosongkan jika non-AABBCC).", "error");
+          showToast("Kode AA harus tepat 2 karakter (atau dikosongkan jika non-AABBC).", "error");
           return;
         }
         if (codeAA) {
