@@ -234,7 +234,10 @@
       </div>
 
       <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
+          <button type="button" id="bm-delete-btn" onclick="deleteBatchFromModal()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition">Hapus Batch</button>
+        </div>
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="bm-save-progress-btn" onclick="saveBatchProgress()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Progres Batch</button>
           <button type="button" id="bm-save-dpj-btn" onclick="executeSaveDpj()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Save DPJ & Selesaikan Batch</button>
@@ -340,6 +343,7 @@
 
         <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Produk (AA)</button>
         <button type="button" onclick="resetDemoData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset Data Demo</button>
+        <button type="button" onclick="clearAllData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white text-red-700 border border-red-200 hover:bg-red-50 transition" title="Hapus semua data & mulai dari awal">Kosongkan Data</button>
         <button type="button" onclick="openNewBatchModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 transition">Buat Batch Lengkap</button>
         <button type="button" onclick="openIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">+ Catat Dokumen Masuk</button>
         <div class="inline-flex items-center gap-2 pl-3 border-l border-slate-200 ml-1">
@@ -863,7 +867,7 @@
             return;
           }
           const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed) || parsed.length === 0) {
+          if (!Array.isArray(parsed)) {
             masterProducts = getDefaultProducts();
             saveProducts();
             return;
@@ -997,7 +1001,7 @@
             return;
           }
           const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed) || parsed.length === 0) {
+          if (!Array.isArray(parsed)) {
             batches = getDefaultBatches(activeDateStr);
             saveBatches();
             return;
@@ -1603,6 +1607,7 @@
                 <button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${ev.statusLabel === "Ready for DPJ" ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-slate-100 text-slate-800 hover:bg-slate-200"} transition">
                   ${ev.statusLabel === "Ready for DPJ" ? "Save DPJ" : "Detail"}
                 </button>
+                <button type="button" onclick="deleteBatch('${escapeHtml(batch.id)}')" class="ml-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition" title="Hapus batch ini" aria-label="Hapus batch ${escapeHtml(batch.id)}">Hapus</button>
               </td>
             </tr>
           `;
@@ -2267,11 +2272,15 @@
         const ev = evaluateBatch(formDraft);
         draftUnlocked = ev.statusLabel !== "Released";
         document.getElementById("batch-modal-title").textContent = `Detail Batch — ${found.id}`;
+        const delBtn = document.getElementById("bm-delete-btn");
+        if (delBtn) delBtn.classList.remove("hidden");
         renderBatchModal();
         document.getElementById("batch-modal").classList.remove("hidden");
       }
 
       function closeBatchModal() {
+        const delBtn = document.getElementById("bm-delete-btn");
+        if (delBtn) delBtn.classList.add("hidden");
         document.getElementById("batch-modal").classList.add("hidden");
         formDraft = null;
       }
@@ -2679,6 +2688,47 @@
         showToast(`Save DPJ berhasil untuk ${batch.id} pada ${todayVal}.`, "success");
       }
 
+      function deleteBatch(batchId) {
+        const found = batches.find(b => b.id === batchId);
+        if (!found) return;
+        if (!window.confirm(`Hapus batch "${found.id}"?\nTindakan ini tidak bisa dibatalkan` +
+            (window.__ctSync && window.__ctSync.onBatchesSaved ? " dan berlaku di semua perangkat." : "."))) return;
+        batches = batches.filter(b => b.id !== batchId);
+        saveBatches();
+        const bm = document.getElementById("batch-modal");
+        if (bm && !bm.classList.contains("hidden")) closeBatchModal();
+        renderDashboard();
+        showToast(`Batch ${batchId} dihapus.`, "success");
+      }
+
+      function deleteBatchFromModal() {
+        if (editingOriginalId) deleteBatch(editingOriginalId);
+      }
+
+      function clearAllData() {
+        const cloud = Boolean(window.__ctSync && window.__ctSync.onBatchesSaved);
+        const typed = window.prompt(
+          "Ini akan MENGHAPUS SEMUA batch" + (cloud ? " di SEMUA perangkat" : "") + " dan tidak bisa dibatalkan.\n\nKetik HAPUS untuk melanjutkan:"
+        );
+        if (typed === null) return;
+        if (typed.trim().toUpperCase() !== "HAPUS") {
+          showToast("Dibatalkan: kata konfirmasi tidak sesuai.", "error");
+          return;
+        }
+        const alsoProducts = window.confirm("Hapus juga semua Master Produk?\n\nOK = hapus juga\nBatal = pertahankan Master Produk");
+        batches = [];
+        currentPage = 1;
+        saveBatches();
+        if (alsoProducts) {
+          masterProducts = [];
+          saveProducts();
+        }
+        const bm = document.getElementById("batch-modal");
+        if (bm && !bm.classList.contains("hidden")) closeBatchModal();
+        renderDashboard();
+        showToast(alsoProducts ? "Semua batch & Master Produk dihapus. Mulai dari awal." : "Semua batch dihapus. Mulai dari awal.", "success");
+      }
+
       function resetDemoData() {
         if (window.__ctSync && window.__ctSync.onBatchesSaved &&
             !window.confirm("Reset akan MENGGANTI data di SEMUA perangkat dengan data demo. Lanjutkan?")) return;
@@ -2882,6 +2932,9 @@
       window.executeSaveDpj = executeSaveDpj;
       window.quickSaveDpjToday = quickSaveDpjToday;
       window.resetDemoData = resetDemoData;
+      window.deleteBatch = deleteBatch;
+      window.deleteBatchFromModal = deleteBatchFromModal;
+      window.clearAllData = clearAllData;
 
       window.openMasterModal = openMasterModal;
       window.closeMasterModal = closeMasterModal;
@@ -3012,7 +3065,7 @@
         return;
       }
       const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-              collection, doc, onSnapshot, writeBatch, serverTimestamp } = fs;
+              collection, doc, onSnapshot, writeBatch, setDoc, getDocFromServer, serverTimestamp } = fs;
 
       let db;
       try {
@@ -3033,6 +3086,10 @@
       function createSync(name, prefix, bridgeGet, bridgeApply, hookName) {
         const col = collection(db, "workspaces", "main", name);
         const docRef = (id) => doc(db, "workspaces", "main", name, prefix + encodeURIComponent(String(id)));
+        const metaRef = doc(db, "workspaces", "main", "meta", name);   // penanda "sudah pernah diinisialisasi"
+        const writeMarker = () => setDoc(metaRef, { initialized: true, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
+        let initializing = false;
+        let lastSnap = null;
         const known = new Map();   // id -> { o, json }  (kondisi terakhir yang diketahui di cloud, termasuk antrian lokal)
         let ready = false;
 
@@ -3108,18 +3165,35 @@
         // Dipanggil dashboard setiap kali data lokal disimpan
         window.__ctSync[hookName] = (arr) => { if (ready) flush(arr); };
 
-        onSnapshot(col, (snap) => {
+        function handle(snap) {
+          lastSnap = snap;
           const fromServer = !snap.metadata.fromCache;
 
           if (!ready) {
             if (snap.empty) {
-              if (!fromServer) return;           // cache kosong: tunggu jawaban server
-              ready = true;                      // cloud benar-benar kosong -> seed dari data lokal
-              flush(bridgeGet());
-              refreshStatus();
+              if (!fromServer || initializing) return;   // cache kosong: tunggu jawaban server
+              initializing = true;
+              // Cloud kosong: seed HANYA jika belum pernah diinisialisasi. Jika penanda ada,
+              // berarti data sengaja dikosongkan -> jangan dihidupkan lagi oleh perangkat lama.
+              getDocFromServer(metaRef).then((m) => {
+                initializing = false;
+                ready = true;
+                if (m.exists()) {
+                  known.clear();
+                  if (bridgeGet().length) bridgeApply([]);
+                } else {
+                  flush(bridgeGet());
+                }
+                writeMarker();
+                refreshStatus();
+              }).catch(() => {
+                initializing = false;
+                setTimeout(() => { if (!ready && lastSnap) handle(lastSnap); }, 5000);
+              });
               return;
             }
             ready = true;
+            writeMarker();
           } else {
             const changes = snap.docChanges();
             if (changes.length && changes.every((c) => c.doc.metadata.hasPendingWrites)) {
@@ -3130,7 +3204,9 @@
           const remoteArr = rememberFrom(snap);
           if (JSON.stringify(remoteArr) !== JSON.stringify(bridgeGet())) bridgeApply(remoteArr);
           if (fromServer) refreshStatus();
-        }, (err) => {
+        }
+
+        onSnapshot(col, handle, (err) => {
           console.error("Snapshot error (" + name + "):", err);
           setStatus("error");
           toast(err.code === "permission-denied"
