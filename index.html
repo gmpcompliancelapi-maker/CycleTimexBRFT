@@ -1,0 +1,3153 @@
+<!DOCTYPE html>
+<html lang="id" class="auth-pending">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1e3a8a" />
+  <meta name="description" content="Dashboard & workflow document-first untuk memantau cycle time perilisan batch." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Cycle Time" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta property="og:title" content="Cycle Time Perilisan" />
+  <meta property="og:image" content="icons/og-image.png" />
+  <!-- Sembunyikan halaman sampai status login terverifikasi (mencegah konten sempat terlihat) -->
+  <style>html.auth-pending body { visibility: hidden; }</style>
+  <title>Cycle Time Perilisan — Dashboard & Workflow Document-First</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    /* Custom scrollbar for smooth horizontal matrix scrolling */
+    .table-scroll::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .table-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+  <!-- Toast Notification Stack -->
+  <div id="toast-stack" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none" aria-live="polite"></div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 1: INCOMING DOCUMENT TRIGGER (DOCUMENT-FIRST ENTRY)               -->
+  <!-- ======================================================================= -->
+  <div id="incoming-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="incoming-modal-title">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 id="incoming-modal-title" class="text-base font-bold">Catat Dokumen Masuk (Incoming Trigger)</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Catat dokumen yang tiba lebih dulu; dokumen lain tetap berstatus "Belum Masuk"</p>
+        </div>
+        <button type="button" onclick="closeIncomingModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex flex-col gap-4">
+        <!-- Step 1: Select Batch Mode -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">1. Pilih Batch Perilisan</label>
+          <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-2.5">
+            <button type="button" id="inc-mode-existing" onclick="setIncomingMode('existing')" class="py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition">Batch Aktif</button>
+            <button type="button" id="inc-mode-new" onclick="setIncomingMode('new')" class="py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">+ Batch Baru</button>
+          </div>
+
+          <div id="inc-existing-box">
+            <select id="inc-existing-select" onchange="renderIncomingDocChoices()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"></select>
+            <p id="inc-existing-hint" class="mt-1.5 text-xs text-slate-500"></p>
+          </div>
+
+          <div id="inc-new-box" class="hidden flex flex-col gap-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label for="inc-new-id" class="block text-[11px] font-bold text-slate-600 mb-1">ID Perilisan</label>
+                <input type="text" id="inc-new-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+              </div>
+              <div>
+                <label for="inc-new-bets" class="block text-[11px] font-bold text-slate-600 mb-1">No. Bets (Pola AABBCC)</label>
+                <input type="text" id="inc-new-bets" oninput="onIncomingBetsOrProductChange('bets')" placeholder="Misal: 610426 atau TRIAL-01" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+              </div>
+            </div>
+            <div id="inc-bets-detect-badge" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk</label>
+                <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 focus:outline-none">
+                  <option value="">-- Pilih dari Master Produk --</option>
+                </select>
+              </div>
+              <input type="text" id="inc-new-name" oninput="onIncomingBetsOrProductChange('name')" placeholder="Otomatis terisi jika kode AA cocok, atau ketik/pilih Nama Produk" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+            <label id="inc-apply-default-wrap" class="hidden inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <input type="checkbox" id="inc-apply-default-docs" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <span id="inc-apply-default-label">Terapkan default dokumen wajib produk</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Step 2: Select Incoming Document -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">2. Dokumen Mana yang Baru Datang?</label>
+          <div id="inc-doc-choices" class="grid grid-cols-5 gap-2"></div>
+          <p id="inc-doc-caption" class="mt-1.5 text-xs font-semibold text-blue-700"></p>
+        </div>
+
+        <!-- Step 3: Receive Date -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="inc-receive-date" class="text-xs font-bold text-slate-700 uppercase tracking-wider">3. Tanggal Terima Dokumen</label>
+            <button type="button" onclick="setInputActiveDate('inc-receive-date')" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Gunakan Tanggal Berjalan</button>
+          </div>
+          <input type="date" id="inc-receive-date" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+        </div>
+
+        <!-- Optional Note -->
+        <div>
+          <label for="inc-note" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Kedatangan (Opsional)</label>
+          <input type="text" id="inc-note" placeholder="Contoh: Laporan hasil uji QC masuk dari lab..." class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2">
+        <button type="button" onclick="closeIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
+        <button type="button" onclick="submitIncomingDocument()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">Simpan & Trigger Dokumen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 2: QUICK ACTION PER DOKUMEN (KLIK PIL DI MATRIKS)                 -->
+  <!-- ======================================================================= -->
+  <div id="doc-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="doc-modal-title">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="doc-modal-code" class="px-2 py-0.5 rounded-md bg-blue-600 text-xs font-extrabold tracking-wide">QC</span>
+            <h3 id="doc-modal-title" class="text-base font-bold">Detail Dokumen</h3>
+          </div>
+          <p id="doc-modal-sub" class="text-xs text-slate-300 mt-1"></p>
+        </div>
+        <button type="button" onclick="closeDocModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
+      </div>
+
+      <div id="doc-modal-body" class="p-5 overflow-y-auto flex flex-col gap-4"></div>
+
+      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="doc-modal-full-btn" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition">Buka Detail Batch & Save DPJ</button>
+        <button type="button" onclick="closeDocModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 3: DETAIL BATCH LENGKAP & SAVE DPJ (1X PER BATCH)                 -->
+  <!-- ======================================================================= -->
+  <div id="batch-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="batch-modal-title">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 id="batch-modal-title" class="text-base font-bold">Detail Batch & Save DPJ</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Kelola kelengkapan 5 dokumen, status N/A, verifikasi berurutan, dan Save DPJ (1x per batch)</p>
+        </div>
+        <button type="button" onclick="closeBatchModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex flex-col gap-5">
+        <!-- Lock Banner if Released -->
+        <div id="batch-lock-banner" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 text-emerald-900 text-xs">
+            <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-bold">TERKUNCI (RELEASED)</span>
+            <span>Batch ini sudah selesai Save DPJ. Gunakan tombol Admin Unlock jika perlu koreksi tanggal.</span>
+          </div>
+          <button type="button" onclick="unlockDraftBatch()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 transition">Admin Unlock</button>
+        </div>
+
+        <!-- Batch Header Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div>
+            <label for="bm-release-id" class="block text-xs font-bold text-slate-700 mb-1">ID Perilisan <span class="text-red-600">*</span></label>
+            <input type="text" id="bm-release-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+          </div>
+          <div>
+            <label for="bm-batch-no" class="block text-xs font-bold text-slate-700 mb-1">No. Bets (AABBCC)</label>
+            <input type="text" id="bm-batch-no" oninput="onBatchModalBetsInput(this.value)" placeholder="Misal: 610426" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="bm-batch-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
+              <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-1.5 py-0.5 focus:outline-none">
+                <option value="">Master</option>
+              </select>
+            </div>
+            <input type="text" id="bm-batch-name" oninput="onBatchModalNameInput(this.value)" placeholder="Contoh: Paracetamol 500mg Tablet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+          </div>
+          <div id="bm-bets-detect-badge" class="sm:col-span-3 hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
+        </div>
+
+        <!-- 5 Documents Cards -->
+        <div id="bm-docs-container" class="flex flex-col gap-3"></div>
+
+        <!-- Point 3: Save DPJ Box -->
+        <div class="bg-purple-50/70 border border-purple-200 rounded-2xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div>
+              <h4 class="text-sm font-bold text-purple-950">Point 3 — Save DPJ (Sekali per Batch oleh SPV / Officer)</h4>
+              <p id="bm-dpj-readiness" class="text-xs text-purple-700 mt-0.5">Menunggu seluruh dokumen wajib berstatus Verified.</p>
+            </div>
+            <span id="bm-dpj-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Belum Siap DPJ</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="bm-dpj-date" class="text-xs font-bold text-slate-700">Tanggal Save DPJ</label>
+                <button type="button" id="bm-dpj-today-btn" onclick="setDraftDpjToday()" class="text-xs font-semibold text-purple-700 hover:text-purple-900">Tanggal Berjalan</button>
+              </div>
+              <input type="date" id="bm-dpj-date" onchange="onDraftDpjChange('dpjTime', this.value)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+            </div>
+            <div>
+              <label for="bm-dpj-pic" class="block text-xs font-bold text-slate-700 mb-1">Nama SPV / Officer (Save DPJ)</label>
+              <input type="text" id="bm-dpj-pic" oninput="onDraftDpjChange('dpjPic', this.value)" placeholder="Contoh: Budi Santoso (SPV)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="bm-save-progress-btn" onclick="saveBatchProgress()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Progres Batch</button>
+          <button type="button" id="bm-save-dpj-btn" onclick="executeSaveDpj()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Save DPJ & Selesaikan Batch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 4: MASTER PRODUK DATABASE (AABBCC + NON-AABBCC)                   -->
+  <!-- ======================================================================= -->
+  <div id="master-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="master-modal-title">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
+        <div>
+          <h3 id="master-modal-title" class="text-base font-bold">Master Produk & Deteksi Kode AABBCC</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Kode 2 karakter awal (<b>AA</b>) bersifat opsional; produk non-AABBCC tetap bebas diinput dengan nama produk</p>
+        </div>
+        <button type="button" onclick="closeMasterModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
+      </div>
+
+      <div class="p-5 overflow-y-auto flex flex-col gap-5">
+        <!-- Add / Edit Product Form -->
+        <form id="master-product-form" onsubmit="saveMasterProduct(event)" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <h4 id="mp-form-title" class="text-xs font-extrabold uppercase tracking-wider text-slate-800">Tambah Produk ke Master</h4>
+            <button type="button" onclick="resetMasterProductForm()" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Bersihkan Form</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="mp-code-aa" class="block text-xs font-bold text-slate-700 mb-1">Kode Produk AA (Opsional, 2 Karakter)</label>
+              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 atau AB (kosongkan jika non-AABBCC)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+            <div class="sm:col-span-2">
+              <label for="mp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
+              <input type="text" id="mp-name" required placeholder="Contoh: Paracetamol 500mg Kaplet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+          </div>
+
+          <div>
+            <span class="block text-xs font-bold text-slate-700 mb-1.5">Default Dokumen Wajib (Saat Produk Terdeteksi)</span>
+            <div id="mp-default-docs" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="submit" id="mp-submit-btn" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Produk</button>
+          </div>
+        </form>
+
+        <!-- Product List Table -->
+        <div class="border border-slate-200 rounded-2xl overflow-hidden">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">Daftar Master Produk (<span id="mp-count-label">0</span>)</span>
+            <span class="text-[11px] text-slate-500">Pencocokan kode AA tidak sensitif huruf besar/kecil</span>
+          </div>
+          <div class="overflow-x-auto table-scroll">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50/70 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                  <th class="py-2.5 px-4">Kode AA</th>
+                  <th class="py-2.5 px-4">Nama Produk</th>
+                  <th class="py-2.5 px-4">Default Dokumen Wajib</th>
+                  <th class="py-2.5 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="mp-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex justify-end">
+        <button type="button" onclick="closeMasterModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- TOP STICKY HEADER                                                       -->
+  <!-- ======================================================================= -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-sm shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 14l4-4 3 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight text-slate-900">Cycle Time Perilisan</h1>
+          <p class="text-xs text-slate-500">5 Dokumen: PPI (PP, KP, KS) • QC • MC • Satuan Hari Kalender • 1x Save DPJ per Batch</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Active Date Selector ("Tanggal Berjalan") -->
+        <div class="inline-flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5">
+          <label for="active-date-picker" class="text-xs font-bold text-slate-600 whitespace-nowrap">Tanggal Berjalan:</label>
+          <input type="date" id="active-date-picker" onchange="onActiveDateChange(this.value)" class="text-xs font-semibold text-slate-900 bg-transparent border-none focus:outline-none cursor-pointer" />
+        </div>
+
+        <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Produk (AA)</button>
+        <button type="button" onclick="resetDemoData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset Data Demo</button>
+        <button type="button" onclick="openNewBatchModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 transition">Buat Batch Lengkap</button>
+        <button type="button" onclick="openIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">+ Catat Dokumen Masuk</button>
+        <div class="inline-flex items-center gap-2 pl-3 border-l border-slate-200 ml-1">
+          <span id="sync-status" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500" title="Status sinkronisasi"><span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-300"></span><span id="sync-text" class="hidden sm:inline">Menyambung…</span></span>
+          <span id="user-email" class="hidden sm:inline text-xs font-medium text-slate-500 max-w-[160px] truncate" title=""></span>
+          <button type="button" id="logout-btn" class="px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition">Keluar</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================================= -->
+  <!-- MAIN DASHBOARD CONTAINER                                                -->
+  <!-- ======================================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-5">
+
+    <!-- 1. ANTI-CLUTTER LIVE INCOMING TRIGGER FEED -->
+    <section class="bg-gradient-to-br from-slate-900 via-blue-950 to-blue-800 text-white rounded-2xl p-5 shadow-md">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[11px] font-bold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Document-First Incoming Trigger</span>
+            </span>
+            <button type="button" id="btn-toggle-feed" onclick="toggleIncomingFeed()" class="px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-[11px] font-semibold transition">Sembunyikan Feed</button>
+            <button type="button" id="btn-expand-feed" onclick="toggleExpandIncomingFeed()" class="px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-blue-100 text-[11px] font-semibold transition">Lihat Semua</button>
+          </div>
+          <h2 class="text-base sm:text-lg font-bold mt-2">Dokumen mana yang baru datang? Catat langsung tanpa menunggu lengkap</h2>
+          <p class="text-xs text-blue-100 mt-0.5">Klik tombol dokumen di kanan untuk mencatat kedatangan pertama (misal QC masuk duluan), atau klik pil dokumen di tabel matriks.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="openIncomingModal(null, 'PP')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ PP (PPI)</button>
+          <button type="button" onclick="openIncomingModal(null, 'KP')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ KP (PPI)</button>
+          <button type="button" onclick="openIncomingModal(null, 'KS')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ KS (PPI)</button>
+          <button type="button" onclick="openIncomingModal(null, 'QC')" class="px-3 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-extrabold shadow-xs transition">+ QC Masuk</button>
+          <button type="button" onclick="openIncomingModal(null, 'MC')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ MC Masuk</button>
+        </div>
+      </div>
+
+      <div id="incoming-feed-grid" class="mt-4 pt-4 border-t border-white/15 grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+    </section>
+
+    <!-- 2. SPECIAL PANEL: DOKUMEN LENGKAP PADA HARI BERJALAN -->
+    <section class="bg-gradient-to-br from-white to-emerald-50/80 border border-emerald-200 border-l-4 border-l-emerald-600 rounded-2xl p-5 shadow-xs">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">List Khusus Hari Berjalan</span>
+            <span id="today-date-label" class="text-xs font-bold text-emerald-700"></span>
+          </div>
+          <h3 class="text-base font-bold text-emerald-950 mt-1">Dokumen Lengkap pada Hari Berjalan</h3>
+          <p class="text-xs text-emerald-800/90 mt-0.5">Batch dihitung lengkap pada hari berjalan ketika <strong>dokumen wajib terakhir diterima</strong> tepat pada tanggal berjalan ini</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <div id="today-summary-badges" class="flex flex-wrap items-center gap-1.5"></div>
+          <button type="button" onclick="filterOnlyTodayComplete()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition">Filter di Tabel Utama</button>
+        </div>
+      </div>
+
+      <div id="today-complete-list" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </section>
+
+    <!-- 3. KPI SUMMARY CARDS (POINT 1, POINT 2, POINT 3, TOTAL CT) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold uppercase">Point 1 • 1st Check</span>
+          <span class="text-xs font-medium text-slate-500">Pelaksana</span>
+        </div>
+        <div id="kpi-p1" class="text-2xl font-extrabold text-slate-900">0.0 hari</div>
+        <p class="text-xs text-slate-500 mt-1">tgl_first_check − tgl_terima</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold uppercase">Point 2 • 2nd Check</span>
+          <span class="text-xs font-medium text-slate-500">SPV / Officer</span>
+        </div>
+        <div id="kpi-p2" class="text-2xl font-extrabold text-slate-900">0.0 hari</div>
+        <p class="text-xs text-slate-500 mt-1">tgl_second_check − tgl_first_check</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[11px] font-bold uppercase">Point 3 • Save DPJ</span>
+          <span class="text-xs font-medium text-slate-500">SPV / Officer (1x)</span>
+        </div>
+        <div id="kpi-p3" class="text-2xl font-extrabold text-slate-900">0.0 hari</div>
+        <p class="text-xs text-slate-500 mt-1">tgl_save_dpj − max(2nd check wajib)</p>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-bold uppercase">Total Cycle Time</span>
+          <span id="kpi-ready-count" class="text-xs font-bold text-purple-700">0 Ready DPJ</span>
+        </div>
+        <div id="kpi-total" class="text-2xl font-extrabold text-slate-900">0.0 hari</div>
+        <p class="text-xs text-slate-500 mt-1">tgl_save_dpj − min(tgl_terima wajib)</p>
+      </div>
+    </section>
+
+    <!-- 4. INLINE SVG STACKED BAR CHART & STATUS BREAKDOWN -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Rata-Rata Durasi Point 1, Point 2 & Point 3 per Dokumen & PPI</h3>
+            <p class="text-xs text-slate-500">Perbandingan bertumpuk (stacked) untuk PP, KP, KS, rata-rata PPI, QC, dan MC (dalam hari)</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+            <span class="inline-flex items-center gap-1.5 text-blue-700">
+              <span class="w-2.5 h-2.5 rounded-xs bg-blue-500"></span>Point 1 (1st)
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-indigo-700">
+              <span class="w-2.5 h-2.5 rounded-xs bg-indigo-500"></span>Point 2 (2nd)
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-purple-700">
+              <span class="w-2.5 h-2.5 rounded-xs bg-purple-500"></span>Point 3 (DPJ)
+            </span>
+          </div>
+        </div>
+        <div id="svg-chart-wrap" class="w-full"></div>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Distribusi Status Batch</h3>
+          <p class="text-xs text-slate-500 mb-4">Proporsi seluruh batch perilisan yang tercatat</p>
+          <div id="status-breakdown-wrap" class="flex flex-col gap-3.5"></div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+          Tip: Klik pil dokumen pada matriks untuk memperbarui status atau menandai dokumen <strong>Tidak Perlu (N/A)</strong>.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. INTERACTIVE BATCH MATRIX TABLE -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+      <!-- Filter & Table Controls Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Matriks Monitoring Perilisan</h3>
+            <p class="text-xs text-slate-500">Klik pil dokumen (<b>Belum</b>, <b>1st</b>, <b>2nd</b>, <b>✓</b>, <b>N/A</b>) untuk input cepat atau buka detail batch</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Density Toggle -->
+            <div class="inline-flex p-0.5 rounded-xl bg-slate-100 border border-slate-200">
+              <button type="button" id="btn-density-compact" onclick="setTableDensity('compact')" class="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white transition">Ringkas</button>
+              <button type="button" id="btn-density-detail" onclick="setTableDensity('detail')" class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Detail</button>
+            </div>
+
+            <!-- Page Size -->
+            <select id="page-size-select" onchange="onPageSizeChange(this.value)" class="px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-xl focus:outline-none" aria-label="Jumlah baris per halaman">
+              <option value="5" selected>5 / hal</option>
+              <option value="8">8 / hal</option>
+              <option value="12">12 / hal</option>
+            </select>
+
+            <!-- Pill Legend -->
+            <div class="hidden xl:flex items-center gap-1.5 text-[11px] font-bold">
+              <span class="px-2 py-0.5 rounded-md border border-dashed border-slate-300 text-slate-500">Belum</span>
+              <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">1st</span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">2nd</span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">✓</span>
+              <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-400 line-through">N/A</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div>
+            <input type="text" id="filter-search" oninput="onFilterChange()" placeholder="Cari ID Perilisan atau Nama Batch..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600" />
+          </div>
+          <div>
+            <select id="filter-status" onchange="onFilterChange()" class="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none">
+              <option value="ALL">Semua Status Batch</option>
+              <option value="TODAY_COMPLETE">Lengkap Hari Ini (Tgl Berjalan)</option>
+              <option value="In Progress">In Progress (Parsial / Cek)</option>
+              <option value="Ready for DPJ">Ready for DPJ</option>
+              <option value="Released">Released (DPJ Tersimpan)</option>
+            </select>
+          </div>
+          <div>
+            <select id="filter-doc" onchange="onFilterChange()" class="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none">
+              <option value="ALL">Semua Dokumen (PPI, QC, MC)</option>
+              <option value="PPI">Grup PPI (PP, KP, KS)</option>
+              <option value="PP">Dokumen PP</option>
+              <option value="KP">Dokumen KP</option>
+              <option value="KS">Dokumen KS</option>
+              <option value="QC">Dokumen QC</option>
+              <option value="MC">Dokumen MC</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="filterOnlyTodayComplete()" class="flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition">Lengkap Hari Ini</button>
+            <button type="button" onclick="clearFilters()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matrix Table -->
+      <div class="w-full overflow-x-auto table-scroll">
+        <table id="matrix-table" class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+              <th class="py-3 px-4 whitespace-nowrap">ID & Batch Produk</th>
+              <th class="py-3 px-4 whitespace-nowrap">5 Dokumen (PPI: PP, KP, KS • QC • MC)</th>
+              <th class="py-3 px-4 whitespace-nowrap">Status Batch</th>
+              <th class="py-3 px-4 text-right whitespace-nowrap">Point 1</th>
+              <th class="py-3 px-4 text-right whitespace-nowrap">Point 2</th>
+              <th class="py-3 px-4 text-right whitespace-nowrap">Point 3</th>
+              <th class="py-3 px-4 text-right whitespace-nowrap">Total CT</th>
+              <th class="py-3 px-4 text-center whitespace-nowrap">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="matrix-tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="matrix-empty" class="hidden py-10 px-4 text-center text-sm text-slate-500">
+        Tidak ada batch perilisan yang sesuai dengan kriteria filter saat ini.
+      </div>
+
+      <!-- Pagination Footer -->
+      <div id="pagination-bar" class="bg-slate-50 px-4 sm:px-5 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+        <div id="pagination-info">Menampilkan 0-0 dari 0 batch</div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition">Sebelumnya</button>
+          <span id="pagination-page-label" class="px-2 font-bold text-slate-900">Hal 1 / 1</span>
+          <button type="button" id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition">Berikutnya</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      /* =====================================================================
+         1. KONFIGURASI DOMAIN & UTILITAS TANGGAL KALENDER
+         ===================================================================== */
+      const STORAGE_KEY = "ct_perilisan_v5";
+      const PRODUCT_STORAGE_KEY = "ct_master_produk_v1";
+      let memoryFallback = null;
+      let productMemoryFallback = null;
+      const DOC_LIST = [
+        { code: "PP", label: "Perintah Pengemasan (PP)", group: "PPI" },
+        { code: "KP", label: "Catatan Pengolahan (KP)", group: "PPI" },
+        { code: "KS", label: "Catatan Pengemasan (KS)", group: "PPI" },
+        { code: "QC", label: "Laporan Uji QC", group: "QC" },
+        { code: "MC", label: "Microbiology Control (MC)", group: "MC" }
+      ];
+
+      function getSystemTodayStr() {
+        const now = new Date();
+        const offsetMs = now.getTimezoneOffset() * 60000;
+        return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+      }
+
+      let activeDateStr = getSystemTodayStr();
+
+      function normalizeDateStr(val) {
+        if (!val) return "";
+        return String(val).slice(0, 10);
+      }
+
+      function shiftDateStr(baseDateStr, deltaDays) {
+        const clean = normalizeDateStr(baseDateStr) || getSystemTodayStr();
+        const parts = clean.split("-");
+        const utc = Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) + deltaDays);
+        return new Date(utc).toISOString().slice(0, 10);
+      }
+
+      function parseDayMs(dateStr) {
+        const clean = normalizeDateStr(dateStr);
+        if (!clean) return null;
+        const parts = clean.split("-");
+        if (parts.length !== 3) return null;
+        return Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      }
+
+      function diffDays(startStr, endStr) {
+        const s = parseDayMs(startStr);
+        const e = parseDayMs(endStr);
+        if (s === null || e === null) return null;
+        return Math.round((e - s) / 86400000);
+      }
+
+      function formatShortDate(dateStr) {
+        const clean = normalizeDateStr(dateStr);
+        if (!clean) return "—";
+        const parts = clean.split("-");
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        try {
+          return dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+        } catch (e) {
+          return clean;
+        }
+      }
+
+      function formatHumanDate(dateStr) {
+        const clean = normalizeDateStr(dateStr);
+        if (!clean) return "—";
+        const parts = clean.split("-");
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        try {
+          return dt.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
+        } catch (e) {
+          return clean;
+        }
+      }
+
+      function escapeHtml(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function showToast(message, type) {
+        const stack = document.getElementById("toast-stack");
+        if (!stack) return;
+        const el = document.createElement("div");
+        const borderClass = type === "error"
+          ? "border-l-4 border-l-red-500"
+          : type === "success"
+            ? "border-l-4 border-l-emerald-500"
+            : "border-l-4 border-l-blue-500";
+        el.className = `pointer-events-auto bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg ${borderClass}`;
+        el.textContent = message;
+        stack.appendChild(el);
+        setTimeout(() => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 3600);
+      }
+
+      /* =====================================================================
+         2. DATA MODEL & SEED DATA (7 BATCH REALISTIS)
+         ===================================================================== */
+      function createEmptyDocs() {
+        return {
+          PP: { required: true, naNote: "", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" },
+          KP: { required: true, naNote: "", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" },
+          KS: { required: true, naNote: "", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" },
+          QC: { required: true, naNote: "", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" },
+          MC: { required: true, naNote: "", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" }
+        };
+      }
+
+      function getDefaultBatches(baseToday) {
+        const t0 = normalizeDateStr(baseToday) || getSystemTodayStr();
+        const t1 = shiftDateStr(t0, -1);
+        const t2 = shiftDateStr(t0, -2);
+        const t3 = shiftDateStr(t0, -3);
+        const t4 = shiftDateStr(t0, -4);
+
+        // 1. Released beberapa hari lalu (semua 5 dokumen wajib)
+        const b1 = {
+          id: "REL-2026-001",
+          batchName: "Amoxicillin 500mg Kaplet — Batch A261101",
+          dpjTime: t2,
+          dpjPic: "Budi Santoso (SPV)",
+          docs: createEmptyDocs()
+        };
+        b1.docs.PP = { required: true, naNote: "", arrivalNote: "", receiveTime: t4, firstCheckTime: t3, firstPic: "Rina", secondCheckTime: t3, secondPic: "Budi Santoso" };
+        b1.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t4, firstCheckTime: t3, firstPic: "Rina", secondCheckTime: t3, secondPic: "Budi Santoso" };
+        b1.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t4, firstCheckTime: t3, firstPic: "Andi", secondCheckTime: t3, secondPic: "Budi Santoso" };
+        b1.docs.QC = { required: true, naNote: "", arrivalNote: "", receiveTime: t3, firstCheckTime: t3, firstPic: "Dedi", secondCheckTime: t2, secondPic: "Budi Santoso" };
+        b1.docs.MC = { required: true, naNote: "", arrivalNote: "", receiveTime: t3, firstCheckTime: t2, firstPic: "Sari", secondCheckTime: t2, secondPic: "Budi Santoso" };
+
+        // 2. Released kemarin (MC tidak perlu / N/A)
+        const b2 = {
+          id: "REL-2026-002",
+          batchName: "Paracetamol Sirup 60ml — Batch P261102",
+          dpjTime: t1,
+          dpjPic: "Hendra Wijaya (Officer)",
+          docs: createEmptyDocs()
+        };
+        b2.docs.PP = { required: true, naNote: "", arrivalNote: "", receiveTime: t3, firstCheckTime: t2, firstPic: "Rina", secondCheckTime: t2, secondPic: "Hendra Wijaya" };
+        b2.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t3, firstCheckTime: t2, firstPic: "Rina", secondCheckTime: t2, secondPic: "Hendra Wijaya" };
+        b2.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t2, firstPic: "Andi", secondCheckTime: t1, secondPic: "Hendra Wijaya" };
+        b2.docs.QC = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Dedi", secondCheckTime: t1, secondPic: "Hendra Wijaya" };
+        b2.docs.MC = { required: false, naNote: "Sirup oral non-steril tidak mensyaratkan MC rutin", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+
+        // 3. Ready for DPJ (semua dokumen wajib sudah 2nd check, siap Save DPJ)
+        const b3 = {
+          id: "REL-2026-003",
+          batchName: "Vitamin C 1000mg — Batch V261103",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        b3.docs.PP = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t1, secondPic: "Budi Santoso" };
+        b3.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t0, secondPic: "Budi Santoso" };
+        b3.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t0, firstPic: "Andi", secondCheckTime: t0, secondPic: "Budi Santoso" };
+        b3.docs.QC = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t0, firstPic: "Dedi", secondCheckTime: t0, secondPic: "Budi Santoso" };
+        b3.docs.MC = { required: false, naNote: "Dikecualikan sesuai kajian risiko", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+
+        // 4. LENGKAP PADA HARI BERJALAN (dokumen terakhir MC diterima hari ini)
+        const b4 = {
+          id: "REL-2026-004",
+          batchName: "Cetirizine 10mg Tablet — Batch T261104",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        b4.docs.PP = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t1, secondPic: "Budi Santoso" };
+        b4.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t1, secondPic: "Budi Santoso" };
+        b4.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t0, firstPic: "Andi", secondCheckTime: "", secondPic: "" };
+        b4.docs.QC = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t0, firstPic: "Dedi", secondCheckTime: "", secondPic: "" };
+        b4.docs.MC = { required: true, naNote: "", arrivalNote: "Hasil uji MC terakhir masuk hari ini", receiveTime: t0, firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+
+        // 5. LENGKAP PADA HARI BERJALAN & SUDAH VERIFIED (tinggal Save DPJ)
+        const b5 = {
+          id: "REL-2026-005",
+          batchName: "Amlodipine 5mg Tablet — Batch L261105",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        b5.docs.PP = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t0, secondPic: "Hendra Wijaya" };
+        b5.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t1, firstPic: "Rina", secondCheckTime: t0, secondPic: "Hendra Wijaya" };
+        b5.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t1, firstCheckTime: t0, firstPic: "Andi", secondCheckTime: t0, secondPic: "Hendra Wijaya" };
+        b5.docs.QC = { required: true, naNote: "", arrivalNote: "QC terakhir masuk hari ini & langsung dicek", receiveTime: t0, firstCheckTime: t0, firstPic: "Dedi", secondCheckTime: t0, secondPic: "Hendra Wijaya" };
+        b5.docs.MC = { required: false, naNote: "Tablet non-steril", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+
+        // 6. Parsial: baru QC yang masuk hari ini
+        const b6 = {
+          id: "REL-2026-006",
+          batchName: "Omeprazole 20mg Kapsul — Batch O261106",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        b6.docs.QC = {
+          required: true,
+          naNote: "",
+          arrivalNote: "Laporan QC tiba lebih dulu dari lab",
+          receiveTime: t0,
+          firstCheckTime: "",
+          firstPic: "",
+          secondCheckTime: "",
+          secondPic: ""
+        };
+
+        // 7. Parsial: PP & KP sudah masuk, KS/QC/MC belum masuk
+        const b7 = {
+          id: "REL-2026-007",
+          batchName: "Metformin 500mg Kaplet — Batch M261107",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        b7.docs.PP = { required: true, naNote: "", arrivalNote: "PP masuk duluan", receiveTime: t1, firstCheckTime: t0, firstPic: "Rina", secondCheckTime: "", secondPic: "" };
+        b7.docs.KP = { required: true, naNote: "", arrivalNote: "KP menyusul hari ini", receiveTime: t0, firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+
+        return [b1, b2, b3, b4, b5, b6, b7];
+      }
+
+      function getDefaultProducts() {
+        return [
+          {
+            id: "prod-1",
+            codeAA: "61",
+            name: "Paracetamol 500mg Kaplet",
+            defaultDocs: ["PP", "KP", "KS", "QC"]
+          },
+          {
+            id: "prod-2",
+            codeAA: "62",
+            name: "Amoxicillin 500mg Kapsul",
+            defaultDocs: ["PP", "KP", "KS", "QC", "MC"]
+          },
+          {
+            id: "prod-3",
+            codeAA: "63",
+            name: "Cetirizine 10mg Tablet",
+            defaultDocs: ["PP", "KP", "KS", "QC"]
+          },
+          {
+            id: "prod-4",
+            codeAA: "64",
+            name: "Inj. Ceftriaxone 1g Vial (Steril)",
+            defaultDocs: ["PP", "KP", "KS", "QC", "MC"]
+          },
+          {
+            id: "prod-5",
+            codeAA: "",
+            name: "Produk Trial / Ekspor Khusus (Non-AABBCC)",
+            defaultDocs: ["PP", "KP", "KS", "QC", "MC"]
+          }
+        ];
+      }
+
+      /* =====================================================================
+         2B. HYBRID AABBCC AUTO-DETECT & MASTER PRODUK ENGINE
+         ===================================================================== */
+      let masterProducts = [];
+      let editingProductId = null;
+      let draftDefaultDocs = ["PP", "KP", "KS", "QC", "MC"];
+      let lastAutoDetectedName = "";
+      let lastAutoDetectedCodeAA = "";
+
+      function loadProducts() {
+        try {
+          const raw = window.localStorage ? window.localStorage.getItem(PRODUCT_STORAGE_KEY) : null;
+          if (!raw) {
+            masterProducts = getDefaultProducts();
+            saveProducts();
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            masterProducts = getDefaultProducts();
+            saveProducts();
+            return;
+          }
+          masterProducts = parsed;
+        } catch (err) {
+          masterProducts = Array.isArray(productMemoryFallback) && productMemoryFallback.length > 0
+            ? cloneObj(productMemoryFallback)
+            : getDefaultProducts();
+        }
+      }
+
+      function saveProducts() {
+        productMemoryFallback = cloneObj(masterProducts);
+        try {
+          if (window.localStorage) {
+            window.localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(masterProducts));
+          }
+        } catch (err) {
+          // Safe fallback in memory
+        }        if (window.__ctSync && window.__ctSync.onProductsSaved) window.__ctSync.onProductsSaved(cloneObj(masterProducts));
+      }
+
+      function findProductByCodeAA(aaCode) {
+        const cleanAA = String(aaCode || "").trim().toUpperCase();
+        if (!cleanAA) return null;
+        return masterProducts.find(p => String(p.codeAA || "").trim().toUpperCase() === cleanAA) || null;
+      }
+
+      // Evaluates No. Bets with pattern AABBCC (6 chars: AA=code, BB=batch seq, CC=year 20YY)
+      function detectBetsPattern(rawBets) {
+        const trimmed = String(rawBets || "").trim();
+        if (!trimmed) {
+          return {
+            state: "EMPTY",
+            isPattern6: false,
+            aa: "",
+            bb: "",
+            cc: "",
+            yearFull: "",
+            matchedProduct: null,
+            badgeText: "",
+            badgeClass: ""
+          };
+        }
+
+        // Match 6 alphanumeric characters: AA (2), BB (2), CC (2)
+        const match6 = trimmed.match(/^([A-Za-z0-9]{2})([A-Za-z0-9]{2})([A-Za-z0-9]{2})$/);
+        if (match6) {
+          const aa = match6[1].toUpperCase();
+          const bb = match6[2].toUpperCase();
+          const cc = match6[3].toUpperCase();
+          const yearFull = /^\d{2}$/.test(cc) ? `20${cc}` : cc;
+          const matched = findProductByCodeAA(aa);
+
+          if (matched) {
+            return {
+              state: "MATCHED",
+              isPattern6: true,
+              aa,
+              bb,
+              cc,
+              yearFull,
+              matchedProduct: matched,
+              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (Bets #${bb}, Thn ${yearFull})`,
+              badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200"
+            };
+          }
+
+          return {
+            state: "UNMATCHED_AA",
+            isPattern6: true,
+            aa,
+            bb,
+            cc,
+            yearFull,
+            matchedProduct: null,
+            badgeText: `Pola AABBCC terdeteksi (AA: ${aa}, Bets #${bb}, Thn ${yearFull}) — kode ${aa} belum ada di Master Produk. Pilih atau ketik Nama Produk secara manual.`,
+            badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
+          };
+        }
+
+        return {
+          state: "NON_AABBCC",
+          isPattern6: false,
+          aa: "",
+          bb: "",
+          cc: "",
+          yearFull: "",
+          matchedProduct: null,
+          badgeText: "Format non-AABBCC (bets khusus/trial) — tetap bisa lanjut; pilih dari daftar atau ketik Nama Produk bebas.",
+          badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
+        };
+      }
+
+      function populateProductPresetSelect(selectEl, includePlaceholder) {
+        if (!selectEl) return;
+        const firstOpt = includePlaceholder ? `<option value="">-- Pilih dari Master Produk --</option>` : `<option value="">Master</option>`;
+        const opts = masterProducts.map(p => {
+          const aaTag = p.codeAA ? `[${escapeHtml(String(p.codeAA).toUpperCase())}] ` : "[Non-AA] ";
+          return `<option value="${escapeHtml(p.id)}">${aaTag}${escapeHtml(p.name)}</option>`;
+        }).join("");
+        selectEl.innerHTML = firstOpt + opts;
+      }
+
+      /* =====================================================================
+         3. STATE & PERSISTENCE (SAFE LOCALSTORAGE)
+         ===================================================================== */
+      let batches = [];
+      let editingOriginalId = null;
+      let formDraft = null;
+      let draftUnlocked = false;
+      let incomingMode = "existing";
+      let incomingSelectedDoc = "QC";
+      let feedVisible = true;
+      let feedExpanded = false;
+      let tableDensity = "compact";
+      let currentPage = 1;
+      let pageSize = 5;
+
+      function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
+      }
+
+      function loadBatches() {
+        try {
+          const raw = window.localStorage ? window.localStorage.getItem(STORAGE_KEY) : null;
+          if (!raw) {
+            batches = getDefaultBatches(activeDateStr);
+            saveBatches();
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            batches = getDefaultBatches(activeDateStr);
+            saveBatches();
+            return;
+          }
+          batches = parsed;
+        } catch (err) {
+          batches = Array.isArray(memoryFallback) && memoryFallback.length > 0
+            ? cloneObj(memoryFallback)
+            : getDefaultBatches(activeDateStr);
+        }
+      }
+
+      function saveBatches() {
+        memoryFallback = cloneObj(batches);
+        try {
+          if (window.localStorage) {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
+          }
+        } catch (err) {
+          // Safe fallback in memory if storage quota/iframe blocks localStorage
+        }        // Sinkronisasi cloud (Firestore) — hanya aktif setelah login & snapshot pertama
+        if (window.__ctSync && window.__ctSync.onBatchesSaved) window.__ctSync.onBatchesSaved(cloneObj(batches));
+      }
+
+      /* =====================================================================
+         4. CORE EVALUATION & CYCLE TIME ENGINE (SATUAN HARI KALENDER)
+         ===================================================================== */
+      function evaluateBatch(batch) {
+        const docStateMap = {};
+        const requiredDocs = [];
+        const p1List = [];
+        const p2List = [];
+
+        let arrivedCount = 0;
+        let verifiedCount = 0;
+        let minReceiveMs = null;
+        let minReceiveTime = "";
+        let firstDocCode = "";
+        let maxReceiveMs = null;
+        let maxReceiveTime = "";
+        let maxSecondCheckMs = null;
+        let maxSecondCheckTime = "";
+
+        DOC_LIST.forEach(def => {
+          const d = batch.docs[def.code];
+          if (!d || !d.required) {
+            docStateMap[def.code] = { status: "NA", p1: null, p2: null };
+            return;
+          }
+
+          requiredDocs.push({ code: def.code, label: def.label, group: def.group, data: d });
+
+          const rTime = normalizeDateStr(d.receiveTime);
+          const fTime = normalizeDateStr(d.firstCheckTime);
+          const sTime = normalizeDateStr(d.secondCheckTime);
+
+          if (!rTime) {
+            docStateMap[def.code] = { status: "NOT_ARRIVED", p1: null, p2: null };
+            return;
+          }
+
+          arrivedCount++;
+          const rMs = parseDayMs(rTime);
+          if (rMs !== null) {
+            if (minReceiveMs === null || rMs < minReceiveMs) {
+              minReceiveMs = rMs;
+              minReceiveTime = rTime;
+              firstDocCode = def.code;
+            }
+            if (maxReceiveMs === null || rMs > maxReceiveMs) {
+              maxReceiveMs = rMs;
+              maxReceiveTime = rTime;
+            }
+          }
+
+          let p1 = null;
+          if (fTime) {
+            const d1 = diffDays(rTime, fTime);
+            if (d1 !== null && d1 >= 0) {
+              p1 = d1;
+              p1List.push(d1);
+            }
+          }
+
+          let p2 = null;
+          if (fTime && sTime) {
+            const d2 = diffDays(fTime, sTime);
+            if (d2 !== null && d2 >= 0) {
+              p2 = d2;
+              p2List.push(d2);
+            }
+          }
+
+          if (sTime) {
+            verifiedCount++;
+            const sMs = parseDayMs(sTime);
+            if (sMs !== null && (maxSecondCheckMs === null || sMs > maxSecondCheckMs)) {
+              maxSecondCheckMs = sMs;
+              maxSecondCheckTime = sTime;
+            }
+            docStateMap[def.code] = { status: "VERIFIED", p1, p2 };
+          } else if (fTime) {
+            docStateMap[def.code] = { status: "PENDING_2ND", p1, p2 };
+          } else {
+            docStateMap[def.code] = { status: "PENDING_1ST", p1, p2 };
+          }
+        });
+
+        const requiredCount = requiredDocs.length;
+        const allReceived = requiredCount > 0 && arrivedCount === requiredCount;
+        const allVerified = requiredCount > 0 && verifiedCount === requiredCount;
+
+        const dpjDate = normalizeDateStr(batch.dpjTime);
+        let statusLabel = "In Progress";
+        if (dpjDate && allVerified) {
+          statusLabel = "Released";
+        } else if (allVerified) {
+          statusLabel = "Ready for DPJ";
+        }
+
+        const avgP1 = p1List.length ? p1List.reduce((a, b) => a + b, 0) / p1List.length : null;
+        const avgP2 = p2List.length ? p2List.reduce((a, b) => a + b, 0) / p2List.length : null;
+
+        let point3 = null;
+        if (dpjDate && allVerified && maxSecondCheckTime) {
+          const d3 = diffDays(maxSecondCheckTime, dpjDate);
+          if (d3 !== null && d3 >= 0) point3 = d3;
+        }
+
+        let totalCT = null;
+        if (dpjDate && allVerified && minReceiveTime) {
+          const dtot = diffDays(minReceiveTime, dpjDate);
+          if (dtot !== null && dtot >= 0) totalCT = dtot;
+        }
+
+        // Definisi khusus: Dokumen lengkap pada hari berjalan ketika SEMUA dokumen wajib
+        // sudah diterima (allReceived) DAN tanggal terima dokumen terakhir (maxReceiveTime)
+        // sama dengan activeDateStr.
+        const targetDay = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        const isTodayComplete = allReceived && maxReceiveTime === targetDay;
+        const completingDocsToday = isTodayComplete
+          ? requiredDocs.filter(item => normalizeDateStr(item.data.receiveTime) === targetDay).map(item => item.code)
+          : [];
+
+        return {
+          requiredCount,
+          arrivedCount,
+          verifiedCount,
+          allReceived,
+          allVerified,
+          statusLabel,
+          docStateMap,
+          avgP1,
+          avgP2,
+          point3,
+          totalCT,
+          minReceiveTime,
+          maxReceiveTime,
+          firstDocCode,
+          maxSecondCheckTime,
+          isTodayComplete,
+          completingDocsToday
+        };
+      }
+
+      /* =====================================================================
+         5. RENDER: INCOMING TRIGGER FEED (ANTI-CLUTTER)
+         ===================================================================== */
+      function renderIncomingFeed() {
+        const feed = document.getElementById("incoming-feed-grid");
+        if (!feed) return;
+        feed.classList.toggle("hidden", !feedVisible);
+
+        const partialItems = batches
+          .map(b => ({ batch: b, ev: evaluateBatch(b) }))
+          .filter(x => x.ev.statusLabel !== "Released" && x.ev.arrivedCount > 0 && !x.ev.allReceived);
+
+        const btnExp = document.getElementById("btn-expand-feed");
+        if (btnExp) {
+          btnExp.textContent = feedExpanded
+            ? "Ringkas (Maks 3)"
+            : (partialItems.length > 3 ? `Lihat Semua (${partialItems.length})` : "Lihat Semua");
+        }
+
+        if (partialItems.length === 0) {
+          feed.innerHTML = `<div class="md:col-span-3 bg-white/10 border border-white/15 rounded-xl p-3 text-xs text-blue-100">
+            Semua batch aktif saat ini sudah memiliki kelengkapan dokumen masuk. Klik <strong>"+ Catat Dokumen Masuk"</strong> untuk mencatat dokumen batch baru.
+          </div>`;
+          return;
+        }
+
+        const visibleItems = feedExpanded ? partialItems : partialItems.slice(0, 3);
+
+        feed.innerHTML = visibleItems.map(({ batch, ev }) => {
+          const arrivedCodes = DOC_LIST
+            .filter(d => batch.docs[d.code].required && ev.docStateMap[d.code].status !== "NOT_ARRIVED")
+            .map(d => d.code);
+
+          const pendingCodes = DOC_LIST
+            .filter(d => batch.docs[d.code].required && ev.docStateMap[d.code].status === "NOT_ARRIVED")
+            .map(d => d.code);
+
+          const nextDoc = pendingCodes[0] || null;
+
+          return `
+            <div class="bg-white/10 border border-white/15 rounded-xl p-3.5 flex flex-col justify-between gap-2.5">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <strong class="text-xs font-bold tracking-wide">${escapeHtml(batch.id)}</strong>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-bold">
+                    Masuk: ${arrivedCodes.join(", ")} (${ev.arrivedCount}/${ev.requiredCount})
+                  </span>
+                </div>
+                <div class="text-xs text-slate-100 mt-1 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
+                <div class="text-[11px] text-blue-200 mt-1">
+                  Masuk awal (${escapeHtml(ev.firstDocCode || "-")}): ${escapeHtml(formatShortDate(ev.minReceiveTime))}
+                </div>
+              </div>
+              <div class="pt-2 border-t border-white/15 flex items-center justify-between gap-2">
+                <span class="text-[11px] text-amber-200 truncate">Belum: ${pendingCodes.join(", ")}</span>
+                ${nextDoc
+                  ? `<button type="button" onclick="openDocModal('${escapeHtml(batch.id)}', '${nextDoc}')" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 hover:bg-blue-50 text-[11px] font-bold shrink-0 transition">+ Input ${nextDoc}</button>`
+                  : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg bg-purple-500 text-white text-[11px] font-bold shrink-0 transition">Detail</button>`
+                }
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      /* =====================================================================
+         6. RENDER: PANEL KHUSUS "DOKUMEN LENGKAP PADA HARI BERJALAN"
+         ===================================================================== */
+      function renderTodayCompleteList() {
+        const listEl = document.getElementById("today-complete-list");
+        const dateLabel = document.getElementById("today-date-label");
+        const badgesWrap = document.getElementById("today-summary-badges");
+        if (!listEl) return;
+
+        const targetDay = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        if (dateLabel) {
+          dateLabel.textContent = `${formatHumanDate(targetDay)} (${targetDay})`;
+        }
+
+        const todayItems = batches
+          .map(b => ({ batch: b, ev: evaluateBatch(b) }))
+          .filter(x => x.ev.isTodayComplete);
+
+        const readyCount = todayItems.filter(x => x.ev.statusLabel === "Ready for DPJ").length;
+        const progressCount = todayItems.filter(x => x.ev.statusLabel === "In Progress").length;
+        const releasedCount = todayItems.filter(x => x.ev.statusLabel === "Released").length;
+
+        if (badgesWrap) {
+          badgesWrap.innerHTML = `
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">${todayItems.length} Lengkap Hari Ini</span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">${readyCount} Siap Save DPJ</span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">${progressCount} Proses Check</span>
+            ${releasedCount > 0 ? `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-800">${releasedCount} Released</span>` : ""}
+          `;
+        }
+
+        if (todayItems.length === 0) {
+          listEl.innerHTML = `
+            <div class="md:col-span-2 lg:col-span-3 bg-white/90 border border-dashed border-emerald-300 rounded-xl p-4 text-xs text-slate-600">
+              Belum ada batch yang dokumen wajib terakhirnya diterima pada tanggal <strong>${escapeHtml(targetDay)}</strong>.
+              Coba catat dokumen terakhir yang masih kurang (misal <strong>MC</strong> pada batch parsial) menggunakan tanggal berjalan ini.
+            </div>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = todayItems.map(({ batch, ev }) => {
+          const docStatusSummary = DOC_LIST.map(def => {
+            const d = batch.docs[def.code];
+            if (!d.required) return `<span class="text-slate-400 line-through">${def.code}:N/A</span>`;
+            const st = ev.docStateMap[def.code].status;
+            if (st === "VERIFIED") return `<span class="text-emerald-700 font-semibold">${def.code} ✓</span>`;
+            if (st === "PENDING_2ND") return `<span class="text-amber-700 font-semibold">${def.code} 2nd</span>`;
+            return `<span class="text-blue-700 font-semibold">${def.code} 1st</span>`;
+          }).join(" • ");
+
+          let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Proses 1st/2nd Check</span>`;
+          if (ev.statusLabel === "Released") {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Released</span>`;
+          } else if (ev.statusLabel === "Ready for DPJ") {
+            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">Ready for DPJ</span>`;
+          }
+
+          const actionButton = ev.statusLabel === "Ready for DPJ"
+            ? `<button type="button" onclick="quickSaveDpjToday('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-xs transition">Save DPJ Sekarang</button>`
+            : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 transition">Buka Detail</button>`;
+
+          return `
+            <div class="bg-white border border-emerald-200 rounded-xl p-3.5 shadow-2xs flex flex-col justify-between gap-2.5">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batch.id)}</strong>
+                  ${statusBadge}
+                </div>
+                <div class="text-xs font-semibold text-slate-700 mt-1 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
+                <div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
+                  <span>Melengkapi hari ini: ${escapeHtml(ev.completingDocsToday.join(", "))}</span>
+                </div>
+                <div class="text-[11px] text-slate-600 mt-2 leading-relaxed">${docStatusSummary}</div>
+              </div>
+              <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-slate-500">Verifikasi: ${ev.verifiedCount}/${ev.requiredCount}</span>
+                ${actionButton}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      /* =====================================================================
+         7. RENDER: KPI CARDS, INLINE SVG STACKED BAR CHART & BREAKDOWN
+         ===================================================================== */
+      function renderKpisAndCharts(filteredBatches) {
+        const p1Vals = [];
+        const p2Vals = [];
+        const p3Vals = [];
+        const totVals = [];
+        let readyCount = 0;
+
+        filteredBatches.forEach(b => {
+          const ev = evaluateBatch(b);
+          if (ev.statusLabel === "Ready for DPJ") readyCount++;
+          if (ev.avgP1 !== null) p1Vals.push(ev.avgP1);
+          if (ev.avgP2 !== null) p2Vals.push(ev.avgP2);
+          if (ev.point3 !== null) p3Vals.push(ev.point3);
+          if (ev.totalCT !== null) totVals.push(ev.totalCT);
+        });
+
+        const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : "0.0";
+
+        document.getElementById("kpi-p1").textContent = `${avg(p1Vals)} hari`;
+        document.getElementById("kpi-p2").textContent = `${avg(p2Vals)} hari`;
+        document.getElementById("kpi-p3").textContent = `${avg(p3Vals)} hari`;
+        document.getElementById("kpi-total").textContent = `${avg(totVals)} hari`;
+        document.getElementById("kpi-ready-count").textContent = `${readyCount} Ready DPJ`;
+
+        renderStackedSvgChart(filteredBatches);
+        renderStatusBreakdown();
+      }
+
+      function renderStackedSvgChart(filteredBatches) {
+        const wrap = document.getElementById("svg-chart-wrap");
+        if (!wrap) return;
+
+        // Calculate average Point 1, Point 2, and batch Point 3 across PP, KP, KS, PPI avg, QC, MC
+        const categories = [
+          { key: "PP", label: "PP (PPI)" },
+          { key: "KP", label: "KP (PPI)" },
+          { key: "KS", label: "KS (PPI)" },
+          { key: "PPI_AVG", label: "Rata2 PPI" },
+          { key: "QC", label: "QC" },
+          { key: "MC", label: "MC" }
+        ];
+
+        const batchP3Arr = [];
+        filteredBatches.forEach(b => {
+          const ev = evaluateBatch(b);
+          if (ev.point3 !== null) batchP3Arr.push(ev.point3);
+        });
+        const avgBatchP3 = batchP3Arr.length ? batchP3Arr.reduce((a, b) => a + b, 0) / batchP3Arr.length : 0;
+
+        const stats = categories.map(cat => {
+          const p1s = [];
+          const p2s = [];
+          const targetCodes = cat.key === "PPI_AVG" ? ["PP", "KP", "KS"] : [cat.key];
+
+          filteredBatches.forEach(b => {
+            const ev = evaluateBatch(b);
+            targetCodes.forEach(code => {
+              const m = ev.docStateMap[code];
+              if (m && m.status !== "NA") {
+                if (m.p1 !== null) p1s.push(m.p1);
+                if (m.p2 !== null) p2s.push(m.p2);
+              }
+            });
+          });
+
+          const p1 = p1s.length ? p1s.reduce((a, b) => a + b, 0) / p1s.length : 0;
+          const p2 = p2s.length ? p2s.reduce((a, b) => a + b, 0) / p2s.length : 0;
+          const p3 = (p1 > 0 || p2 > 0) ? avgBatchP3 : 0;
+          return { label: cat.label, p1, p2, p3, total: p1 + p2 + p3 };
+        });
+
+        const maxTotal = Math.max(3, ...stats.map(s => s.total));
+        const width = 640;
+        const height = 225;
+        const padLeft = 38;
+        const padRight = 14;
+        const padTop = 22;
+        const padBottom = 34;
+        const plotW = width - padLeft - padRight;
+        const plotH = height - padTop - padBottom;
+        const colW = plotW / stats.length;
+
+        let svgContent = "";
+
+        // Horizontal gridlines
+        for (let g = 0; g <= 4; g++) {
+          const ratio = g / 4;
+          const y = padTop + plotH - ratio * plotH;
+          const tick = (maxTotal * ratio).toFixed(1);
+          svgContent += `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${width - padRight}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-dasharray="3 3" />`;
+          svgContent += `<text x="${padLeft - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#64748b">${tick}h</text>`;
+        }
+
+        // Stacked bars
+        stats.forEach((s, idx) => {
+          const centerX = padLeft + idx * colW + colW / 2;
+          const barW = Math.min(34, colW * 0.48);
+          const x = centerX - barW / 2;
+
+          const h1 = (s.p1 / maxTotal) * plotH;
+          const h2 = (s.p2 / maxTotal) * plotH;
+          const h3 = (s.p3 / maxTotal) * plotH;
+
+          const y1 = padTop + plotH - h1;
+          const y2 = y1 - h2;
+          const y3 = y2 - h3;
+
+          if (h1 > 0) {
+            svgContent += `<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${barW.toFixed(1)}" height="${h1.toFixed(1)}" fill="#3b82f6" />`;
+          }
+          if (h2 > 0) {
+            svgContent += `<rect x="${x.toFixed(1)}" y="${y2.toFixed(1)}" width="${barW.toFixed(1)}" height="${h2.toFixed(1)}" fill="#6366f1" />`;
+          }
+          if (h3 > 0) {
+            svgContent += `<rect x="${x.toFixed(1)}" y="${y3.toFixed(1)}" width="${barW.toFixed(1)}" height="${h3.toFixed(1)}" rx="3" fill="#8b5cf6" />`;
+          }
+
+          if (s.total > 0) {
+            svgContent += `<text x="${centerX.toFixed(1)}" y="${(y3 - 5).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="#1e293b">${s.total.toFixed(1)}h</text>`;
+          }
+
+          const isPpiAvg = s.label === "Rata2 PPI";
+          svgContent += `<text x="${centerX.toFixed(1)}" y="${height - 10}" text-anchor="middle" font-size="11" font-weight="${isPpiAvg ? "800" : "600"}" fill="${isPpiAvg ? "#1d4ed8" : "#334155"}">${s.label}</text>`;
+        });
+
+        wrap.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto block" role="img" aria-label="Grafik stacked bar rata-rata durasi Point 1, 2, dan 3 per dokumen">
+            <line x1="${padLeft}" y1="${padTop + plotH}" x2="${width - padRight}" y2="${padTop + plotH}" stroke="#94a3b8" stroke-width="1.2" />
+            ${svgContent}
+          </svg>
+        `;
+      }
+
+      function renderStatusBreakdown() {
+        const wrap = document.getElementById("status-breakdown-wrap");
+        if (!wrap) return;
+
+        const total = batches.length || 1;
+        let inProgress = 0;
+        let ready = 0;
+        let released = 0;
+
+        batches.forEach(b => {
+          const st = evaluateBatch(b).statusLabel;
+          if (st === "Released") released++;
+          else if (st === "Ready for DPJ") ready++;
+          else inProgress++;
+        });
+
+        const rows = [
+          { label: "In Progress (Parsial / Cek)", count: inProgress, barClass: "bg-amber-500" },
+          { label: "Ready for DPJ", count: ready, barClass: "bg-purple-600" },
+          { label: "Released (DPJ Tersimpan)", count: released, barClass: "bg-emerald-600" }
+        ];
+
+        wrap.innerHTML = rows.map(r => {
+          const pct = Math.round((r.count / total) * 100);
+          return `
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
+                <span>${r.label}</span>
+                <span>${r.count} batch (${pct}%)</span>
+              </div>
+              <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full ${r.barClass} rounded-full transition-all duration-300" style="width:${pct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      /* =====================================================================
+         8. RENDER: INTERACTIVE BATCH MATRIX TABLE & PAGINATION
+         ===================================================================== */
+      function renderDocPillHtml(batch, docDef, ev) {
+        const d = batch.docs[docDef.code];
+        const info = ev.docStateMap[docDef.code];
+        const padClass = tableDensity === "compact" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs";
+
+        let pillClass = "border border-dashed border-slate-300 bg-white text-slate-500 hover:border-blue-500 hover:text-blue-700 hover:bg-blue-50";
+        let stateText = "Belum";
+        let tooltip = `${docDef.label}: Belum Masuk (Klik untuk catat kedatangan atau tandai N/A)`;
+
+        if (info.status === "NA") {
+          pillClass = "bg-slate-100 text-slate-400 border border-slate-200 line-through";
+          stateText = "N/A";
+          tooltip = `${docDef.label}: Tidak Perlu / N/A${d.naNote ? " (" + d.naNote + ")" : ""}`;
+        } else if (info.status === "VERIFIED") {
+          pillClass = "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100";
+          stateText = "✓";
+          tooltip = `${docDef.label}: Verified | Terima: ${d.receiveTime} | 1st: ${d.firstCheckTime} | 2nd: ${d.secondCheckTime}`;
+        } else if (info.status === "PENDING_2ND") {
+          pillClass = "bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100";
+          stateText = "2nd";
+          tooltip = `${docDef.label}: Menunggu 2nd Check SPV | Terima: ${d.receiveTime} | 1st: ${d.firstCheckTime}`;
+        } else if (info.status === "PENDING_1ST") {
+          pillClass = "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100";
+          stateText = "1st";
+          tooltip = `${docDef.label}: Menunggu 1st Check Pelaksana | Terima: ${d.receiveTime}`;
+        }
+
+        return `<button type="button" title="${escapeHtml(tooltip)}" onclick="openDocModal('${escapeHtml(batch.id)}', '${docDef.code}')" class="inline-flex items-center gap-1 rounded-lg font-bold whitespace-nowrap transition ${padClass} ${pillClass}">
+          <span>${docDef.code}</span>
+          <span class="opacity-85">${stateText}</span>
+        </button>`;
+      }
+
+      function renderMatrixTable(filteredBatches) {
+        const tbody = document.getElementById("matrix-tbody");
+        const emptyEl = document.getElementById("matrix-empty");
+        const pageBar = document.getElementById("pagination-bar");
+        if (!tbody) return;
+
+        const totalItems = filteredBatches.length;
+        if (totalItems === 0) {
+          tbody.innerHTML = "";
+          if (emptyEl) emptyEl.classList.remove("hidden");
+          if (pageBar) pageBar.classList.add("hidden");
+          return;
+        }
+
+        if (emptyEl) emptyEl.classList.add("hidden");
+        if (pageBar) pageBar.classList.remove("hidden");
+
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, totalItems);
+        const pageSlice = filteredBatches.slice(startIdx, endIdx);
+
+        const cellPad = tableDensity === "compact" ? "py-2.5 px-3.5 text-xs" : "py-3.5 px-4 text-sm";
+
+        tbody.innerHTML = pageSlice.map(batch => {
+          const ev = evaluateBatch(batch);
+
+          const ppiPills = ["PP", "KP", "KS"].map(code => {
+            const def = DOC_LIST.find(x => x.code === code);
+            return renderDocPillHtml(batch, def, ev);
+          }).join("");
+
+          const qcPill = renderDocPillHtml(batch, DOC_LIST.find(x => x.code === "QC"), ev);
+          const mcPill = renderDocPillHtml(batch, DOC_LIST.find(x => x.code === "MC"), ev);
+
+          let statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">In Progress (${ev.verifiedCount}/${ev.requiredCount})</span>`;
+          if (ev.statusLabel === "Released") {
+            statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">Released</span>`;
+          } else if (ev.statusLabel === "Ready for DPJ") {
+            statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">Ready for DPJ</span>`;
+          }
+
+          const fmtDay = val => (val === null || val === undefined) ? "—" : `${Number.isInteger(val) ? val : val.toFixed(1)} hari`;
+
+          const detailSub = tableDensity === "detail"
+            ? `<div class="text-[11px] text-slate-500 mt-1">Masuk awal: ${escapeHtml(formatShortDate(ev.minReceiveTime))} • Lengkap masuk: ${ev.allReceived ? escapeHtml(formatShortDate(ev.maxReceiveTime)) : "Belum"}</div>`
+            : "";
+
+          const todayChip = ev.isTodayComplete
+            ? `<span class="ml-1.5 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Lengkap Hari Ini</span>`
+            : "";
+
+          return `
+            <tr class="hover:bg-slate-50/90 transition">
+              <td class="${cellPad} align-middle">
+                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batch.id)}${todayChip}</div>
+                <div class="text-xs text-slate-600 max-w-xs truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
+                ${detailSub}
+              </td>
+              <td class="${cellPad} align-middle">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-50 border border-slate-200">
+                    <span class="text-[10px] font-extrabold text-slate-500 px-1">PPI</span>
+                    ${ppiPills}
+                  </div>
+                  ${qcPill}
+                  ${mcPill}
+                </div>
+              </td>
+              <td class="${cellPad} align-middle">${statusBadge}</td>
+              <td class="${cellPad} text-right font-semibold text-slate-700 whitespace-nowrap">${fmtDay(ev.avgP1)}</td>
+              <td class="${cellPad} text-right font-semibold text-slate-700 whitespace-nowrap">${fmtDay(ev.avgP2)}</td>
+              <td class="${cellPad} text-right font-semibold text-slate-700 whitespace-nowrap">${fmtDay(ev.point3)}</td>
+              <td class="${cellPad} text-right font-extrabold text-slate-900 whitespace-nowrap">${fmtDay(ev.totalCT)}</td>
+              <td class="${cellPad} text-center whitespace-nowrap">
+                <button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${ev.statusLabel === "Ready for DPJ" ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-slate-100 text-slate-800 hover:bg-slate-200"} transition">
+                  ${ev.statusLabel === "Ready for DPJ" ? "Save DPJ" : "Detail"}
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+        document.getElementById("pagination-info").textContent = `Menampilkan ${startIdx + 1}–${endIdx} dari ${totalItems} batch`;
+        document.getElementById("pagination-page-label").textContent = `Hal ${currentPage} / ${totalPages}`;
+        document.getElementById("btn-prev-page").disabled = currentPage <= 1;
+        document.getElementById("btn-next-page").disabled = currentPage >= totalPages;
+      }
+
+      /* =====================================================================
+         9. MAIN DASHBOARD ORCHESTRATOR & FILTER HANDLERS
+         ===================================================================== */
+      function getFilteredBatches() {
+        const q = (document.getElementById("filter-search").value || "").trim().toLowerCase();
+        const stFilter = document.getElementById("filter-status").value;
+        const docFilter = document.getElementById("filter-doc").value;
+
+        return batches.filter(b => {
+          const ev = evaluateBatch(b);
+          const matchText = !q || b.id.toLowerCase().includes(q) || b.batchName.toLowerCase().includes(q);
+
+          let matchStatus = true;
+          if (stFilter === "TODAY_COMPLETE") {
+            matchStatus = ev.isTodayComplete;
+          } else if (stFilter !== "ALL") {
+            matchStatus = ev.statusLabel === stFilter;
+          }
+
+          let matchDoc = true;
+          if (docFilter === "PPI") {
+            matchDoc = ["PP", "KP", "KS"].some(c => b.docs[c] && b.docs[c].required);
+          } else if (docFilter !== "ALL") {
+            matchDoc = Boolean(b.docs[docFilter] && b.docs[docFilter].required);
+          }
+
+          return matchText && matchStatus && matchDoc;
+        });
+      }
+
+      function renderDashboard() {
+        renderIncomingFeed();
+        renderTodayCompleteList();
+        const filtered = getFilteredBatches();
+        renderKpisAndCharts(filtered);
+        renderMatrixTable(filtered);
+      }
+
+      function onActiveDateChange(val) {
+        const clean = normalizeDateStr(val);
+        if (!clean) return;
+        activeDateStr = clean;
+        currentPage = 1;
+        renderDashboard();
+      }
+
+      function onFilterChange() {
+        currentPage = 1;
+        renderDashboard();
+      }
+
+      function filterOnlyTodayComplete() {
+        const sel = document.getElementById("filter-status");
+        if (sel) sel.value = "TODAY_COMPLETE";
+        currentPage = 1;
+        renderDashboard();
+      }
+
+      function clearFilters() {
+        document.getElementById("filter-search").value = "";
+        document.getElementById("filter-status").value = "ALL";
+        document.getElementById("filter-doc").value = "ALL";
+        currentPage = 1;
+        renderDashboard();
+      }
+
+      function toggleIncomingFeed() {
+        feedVisible = !feedVisible;
+        const btn = document.getElementById("btn-toggle-feed");
+        if (btn) btn.textContent = feedVisible ? "Sembunyikan Feed" : "Tampilkan Feed";
+        renderIncomingFeed();
+      }
+
+      function toggleExpandIncomingFeed() {
+        feedExpanded = !feedExpanded;
+        renderIncomingFeed();
+      }
+
+      function setTableDensity(mode) {
+        tableDensity = mode;
+        const btnCompact = document.getElementById("btn-density-compact");
+        const btnDetail = document.getElementById("btn-density-detail");
+        if (btnCompact && btnDetail) {
+          if (mode === "compact") {
+            btnCompact.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white transition";
+            btnDetail.className = "px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+          } else {
+            btnDetail.className = "px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white transition";
+            btnCompact.className = "px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+          }
+        }
+        renderMatrixTable(getFilteredBatches());
+      }
+
+      function onPageSizeChange(val) {
+        pageSize = Number(val) || 5;
+        currentPage = 1;
+        renderMatrixTable(getFilteredBatches());
+      }
+
+      function changePage(delta) {
+        currentPage += delta;
+        renderMatrixTable(getFilteredBatches());
+      }
+
+      function setInputActiveDate(inputId) {
+        const el = document.getElementById(inputId);
+        if (el && !el.disabled) {
+          el.value = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        }
+      }
+
+      /* =====================================================================
+         10. MODAL 1: INCOMING DOCUMENT TRIGGER LOGIC
+         ===================================================================== */
+      function generateNextBatchId() {
+        let maxNum = 0;
+        batches.forEach(b => {
+          const m = String(b.id).match(/(\d+)$/);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > maxNum) maxNum = n;
+          }
+        });
+        const next = String(maxNum + 1).padStart(3, "0");
+        return `REL-2026-${next}`;
+      }
+
+      function openIncomingModal(preselectedBatchId, preselectedDocCode) {
+        const activeBatches = batches.filter(b => evaluateBatch(b).statusLabel !== "Released");
+        const selectEl = document.getElementById("inc-existing-select");
+
+        selectEl.innerHTML = activeBatches.map(b => {
+          const ev = evaluateBatch(b);
+          return `<option value="${escapeHtml(b.id)}">${escapeHtml(b.id)} — ${escapeHtml(b.batchName)} (${ev.arrivedCount}/${ev.requiredCount} masuk)</option>`;
+        }).join("");
+
+        if (preselectedDocCode) {
+          incomingSelectedDoc = preselectedDocCode;
+        }
+
+        if (preselectedBatchId && activeBatches.some(b => b.id === preselectedBatchId)) {
+          setIncomingMode("existing");
+          selectEl.value = preselectedBatchId;
+        } else if (activeBatches.length > 0) {
+          setIncomingMode("existing");
+        } else {
+          setIncomingMode("new");
+        }
+
+        document.getElementById("inc-new-id").value = generateNextBatchId();
+        document.getElementById("inc-new-name").value = "";
+        document.getElementById("inc-new-bets").value = "";
+        lastAutoDetectedName = "";
+        lastAutoDetectedCodeAA = "";
+        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
+        updateIncomingBetsUi(false);
+
+        document.getElementById("inc-receive-date").value = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        document.getElementById("inc-note").value = "";
+
+        renderIncomingDocChoices();
+        document.getElementById("incoming-modal").classList.remove("hidden");
+      }
+
+      function closeIncomingModal() {
+        document.getElementById("incoming-modal").classList.add("hidden");
+      }
+
+      function setIncomingMode(mode) {
+        incomingMode = mode;
+        const btnExist = document.getElementById("inc-mode-existing");
+        const btnNew = document.getElementById("inc-mode-new");
+        const boxExist = document.getElementById("inc-existing-box");
+        const boxNew = document.getElementById("inc-new-box");
+
+        if (mode === "existing") {
+          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
+          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+          boxExist.classList.remove("hidden");
+          boxNew.classList.add("hidden");
+        } else {
+          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
+          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+          boxNew.classList.remove("hidden");
+          boxExist.classList.add("hidden");
+        }
+        renderIncomingDocChoices();
+      }
+
+      function renderIncomingDocChoices() {
+        const wrap = document.getElementById("inc-doc-choices");
+        const hintEl = document.getElementById("inc-existing-hint");
+        const captionEl = document.getElementById("inc-doc-caption");
+        if (!wrap) return;
+
+        let selectedBatch = null;
+        if (incomingMode === "existing") {
+          const selId = document.getElementById("inc-existing-select").value;
+          selectedBatch = batches.find(b => b.id === selId) || null;
+          if (hintEl) {
+            if (selectedBatch) {
+              const ev = evaluateBatch(selectedBatch);
+              hintEl.textContent = `Status saat ini: ${ev.arrivedCount}/${ev.requiredCount} dokumen wajib sudah masuk.`;
+            } else {
+              hintEl.textContent = "Tidak ada batch aktif — silakan beralih ke '+ Batch Baru'.";
+            }
+          }
+        }
+
+        wrap.innerHTML = DOC_LIST.map(def => {
+          const isSelected = incomingSelectedDoc === def.code;
+          let statusTag = "Baru";
+          if (selectedBatch) {
+            const d = selectedBatch.docs[def.code];
+            if (!d.required) statusTag = "N/A";
+            else if (d.receiveTime) statusTag = "Sudah";
+            else statusTag = "Belum";
+          }
+
+          const btnStyle = isSelected
+            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+            : "bg-white text-slate-800 border-slate-300 hover:border-blue-400 hover:bg-blue-50";
+
+          return `
+            <button type="button" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition ${btnStyle}">
+              <span class="text-xs font-extrabold">${def.code}</span>
+              <span class="text-[10px] opacity-80">${statusTag}</span>
+            </button>
+          `;
+        }).join("");
+
+        const activeDef = DOC_LIST.find(d => d.code === incomingSelectedDoc);
+        if (captionEl && activeDef) {
+          captionEl.textContent = `Terpilih: ${activeDef.label} (${activeDef.group})`;
+        }
+      }
+
+      function updateIncomingBetsUi(shouldAutoFillName) {
+        const betsVal = document.getElementById("inc-new-bets").value;
+        const nameInput = document.getElementById("inc-new-name");
+        const badgeEl = document.getElementById("inc-bets-detect-badge");
+        const defWrap = document.getElementById("inc-apply-default-wrap");
+        const defLabel = document.getElementById("inc-apply-default-label");
+        const presetSel = document.getElementById("inc-product-preset");
+
+        const info = detectBetsPattern(betsVal);
+        if (info.state === "EMPTY") {
+          badgeEl.classList.add("hidden");
+          defWrap.classList.add("hidden");
+          lastAutoDetectedCodeAA = "";
+          return;
+        }
+
+        badgeEl.className = `px-3 py-2 rounded-xl text-xs font-semibold border ${info.badgeClass}`;
+        badgeEl.textContent = info.badgeText;
+        badgeEl.classList.remove("hidden");
+
+        if (info.state === "MATCHED" && info.matchedProduct) {
+          const prod = info.matchedProduct;
+          const currentName = nameInput.value.trim();
+          const codeChanged = lastAutoDetectedCodeAA !== info.aa;
+
+          if (shouldAutoFillName && (codeChanged || !currentName || currentName === lastAutoDetectedName)) {
+            nameInput.value = prod.name;
+            lastAutoDetectedName = prod.name;
+          }
+          lastAutoDetectedCodeAA = info.aa;
+
+          if (presetSel) presetSel.value = prod.id;
+          const docList = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? prod.defaultDocs : ["PP", "KP", "KS", "QC", "MC"];
+          defLabel.textContent = `Terapkan default dokumen wajib produk (${docList.join(", ")})`;
+          defWrap.classList.remove("hidden");
+        } else {
+          lastAutoDetectedCodeAA = "";
+          defWrap.classList.add("hidden");
+        }
+      }
+
+      function onIncomingBetsOrProductChange(source) {
+        if (source === "bets") {
+          updateIncomingBetsUi(true);
+        } else if (source === "name") {
+          const nameVal = document.getElementById("inc-new-name").value.trim();
+          if (nameVal !== lastAutoDetectedName) {
+            const presetSel = document.getElementById("inc-product-preset");
+            if (presetSel) presetSel.value = "";
+          }
+        }
+      }
+
+      function onIncomingProductPresetChange(productId) {
+        const prod = masterProducts.find(p => p.id === productId);
+        if (!prod) return;
+        const nameInput = document.getElementById("inc-new-name");
+        nameInput.value = prod.name;
+        lastAutoDetectedName = prod.name;
+
+        const betsInput = document.getElementById("inc-new-bets");
+        if (prod.codeAA && !betsInput.value.trim()) {
+          const yr = String(normalizeDateStr(activeDateStr) || getSystemTodayStr()).slice(2, 4);
+          betsInput.value = `${String(prod.codeAA).toUpperCase()}01${yr}`;
+          updateIncomingBetsUi(false);
+        }
+      }
+
+      function selectIncomingDoc(code) {
+        incomingSelectedDoc = code;
+        renderIncomingDocChoices();
+      }
+
+      function submitIncomingDocument() {
+        const receiveDate = normalizeDateStr(document.getElementById("inc-receive-date").value);
+        const note = (document.getElementById("inc-note").value || "").trim();
+
+        if (!receiveDate) {
+          showToast("Tanggal terima dokumen wajib diisi.", "error");
+          return;
+        }
+
+        if (incomingMode === "new") {
+          const newId = (document.getElementById("inc-new-id").value || "").trim();
+          const newBets = (document.getElementById("inc-new-bets").value || "").trim();
+          const newName = (document.getElementById("inc-new-name").value || "").trim();
+
+          if (!newId || !newName) {
+            showToast("ID Perilisan dan Nama Produk wajib diisi untuk batch baru.", "error");
+            return;
+          }
+          if (batches.some(b => b.id.toLowerCase() === newId.toLowerCase())) {
+            showToast(`ID Perilisan ${newId} sudah terdaftar. Pilih mode Batch Aktif.`, "error");
+            return;
+          }
+
+          const displayBatchName = newBets ? `${newName} — Bets ${newBets}` : newName;
+          const newBatch = {
+            id: newId,
+            batchNo: newBets,
+            productName: newName,
+            batchName: displayBatchName,
+            dpjTime: "",
+            dpjPic: "",
+            docs: createEmptyDocs()
+          };
+
+          const det = detectBetsPattern(newBets);
+          const applyDefCheckbox = document.getElementById("inc-apply-default-docs");
+          if (det.state === "MATCHED" && det.matchedProduct && applyDefCheckbox && applyDefCheckbox.checked && Array.isArray(det.matchedProduct.defaultDocs) && det.matchedProduct.defaultDocs.length > 0) {
+            const reqSet = new Set(det.matchedProduct.defaultDocs);
+            reqSet.add(incomingSelectedDoc);
+            DOC_LIST.forEach(def => {
+              if (!reqSet.has(def.code)) {
+                newBatch.docs[def.code].required = false;
+                newBatch.docs[def.code].naNote = `Tidak termasuk default produk ${det.matchedProduct.name}`;
+              }
+            });
+          }
+
+          newBatch.docs[incomingSelectedDoc].receiveTime = receiveDate;
+          newBatch.docs[incomingSelectedDoc].arrivalNote = note;
+
+          batches.unshift(newBatch);
+          saveBatches();
+          closeIncomingModal();
+          renderDashboard();
+          showToast(`Batch ${newId} dibuat dengan dokumen masuk pertama: ${incomingSelectedDoc}.`, "success");
+          return;
+        }
+
+        const existingId = document.getElementById("inc-existing-select").value;
+        const targetBatch = batches.find(b => b.id === existingId);
+        if (!targetBatch) {
+          showToast("Batch aktif tidak ditemukan.", "error");
+          return;
+        }
+
+        const docObj = targetBatch.docs[incomingSelectedDoc];
+        if (!docObj.required) {
+          docObj.required = true;
+          docObj.naNote = "";
+        }
+        docObj.receiveTime = receiveDate;
+        if (note) docObj.arrivalNote = note;
+
+        saveBatches();
+        closeIncomingModal();
+        renderDashboard();
+
+        const ev = evaluateBatch(targetBatch);
+        if (ev.isTodayComplete) {
+          showToast(`Dokumen ${incomingSelectedDoc} masuk — Batch ${targetBatch.id} LENGKAP pada hari berjalan!`, "success");
+        } else {
+          showToast(`Kedatangan dokumen ${incomingSelectedDoc} dicatat pada ${targetBatch.id}.`, "success");
+        }
+      }
+
+      /* =====================================================================
+         11. MODAL 2: QUICK ACTION PER DOKUMEN (KLIK PIL DI MATRIKS)
+         ===================================================================== */
+      function openDocModal(batchId, docCode) {
+        const batch = batches.find(b => b.id === batchId);
+        const docDef = DOC_LIST.find(d => d.code === docCode);
+        if (!batch || !docDef) return;
+
+        const d = batch.docs[docCode];
+        const ev = evaluateBatch(batch);
+        const isLocked = ev.statusLabel === "Released";
+        const todayVal = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+
+        document.getElementById("doc-modal-code").textContent = docCode;
+        document.getElementById("doc-modal-title").textContent = docDef.label;
+        document.getElementById("doc-modal-sub").textContent = `${batch.id} — ${batch.batchName}`;
+
+        const fullBtn = document.getElementById("doc-modal-full-btn");
+        fullBtn.onclick = function () {
+          closeDocModal();
+          openBatchModal(batchId);
+        };
+
+        const body = document.getElementById("doc-modal-body");
+
+        if (isLocked) {
+          body.innerHTML = `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900">
+              Batch ini sudah <strong>Released (Save DPJ pada ${escapeHtml(batch.dpjTime)})</strong>. Buka Detail Batch untuk Admin Unlock jika perlu perubahan.
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 text-xs flex flex-col gap-1.5">
+              <div><strong>Status:</strong> ${d.required ? "Dokumen Wajib (Verified)" : "Tidak Perlu (N/A)"}</div>
+              <div><strong>Tgl Terima:</strong> ${escapeHtml(d.receiveTime || "—")}</div>
+              <div><strong>Tgl 1st Check:</strong> ${escapeHtml(d.firstCheckTime || "—")} (${escapeHtml(d.firstPic || "—")})</div>
+              <div><strong>Tgl 2nd Check:</strong> ${escapeHtml(d.secondCheckTime || "—")} (${escapeHtml(d.secondPic || "—")})</div>
+            </div>
+          `;
+          document.getElementById("doc-modal").classList.remove("hidden");
+          return;
+        }
+
+        // Toggle Wajib vs N/A section
+        let naSectionHtml = `
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-slate-700">Status Kewajiban Dokumen</span>
+              <button type="button" onclick="quickToggleRequired('${escapeHtml(batch.id)}', '${docCode}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold ${d.required ? "bg-slate-200 text-slate-700 hover:bg-slate-300" : "bg-blue-600 text-white hover:bg-blue-700"} transition">
+                ${d.required ? "Tandai Tidak Perlu (N/A)" : "Aktifkan sebagai Wajib"}
+              </button>
+            </div>
+            ${!d.required ? `
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Alasan Tidak Perlu (N/A)</label>
+                <div class="flex gap-2">
+                  <input type="text" id="qm-na-note" value="${escapeHtml(d.naNote || "")}" placeholder="Misal: Produk non-steril tidak perlu MC" class="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg" />
+                  <button type="button" onclick="quickSaveNaNote('${escapeHtml(batch.id)}', '${docCode}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white">Simpan</button>
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
+
+        let stepHtml = "";
+        if (!d.required) {
+          stepHtml = `<p class="text-xs text-slate-500">Dokumen ini ditandai <strong>Tidak Perlu (N/A)</strong> dan tidak akan menahan proses Save DPJ.</p>`;
+        } else if (!d.receiveTime) {
+          stepHtml = `
+            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 flex flex-col gap-3">
+              <div class="text-xs font-bold text-blue-900">Tahap 1: Catat Tanggal Terima Dokumen</div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Terima</label>
+                <input type="date" id="qm-date-input" value="${todayVal}" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Kedatangan (Opsional)</label>
+                <input type="text" id="qm-note-input" value="${escapeHtml(d.arrivalNote || "")}" placeholder="Catatan masuk..." class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <button type="button" onclick="quickAdvanceStep('${escapeHtml(batch.id)}', '${docCode}', 'RECEIVE')" class="w-full py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Tanggal Terima</button>
+            </div>
+          `;
+        } else if (!d.firstCheckTime) {
+          stepHtml = `
+            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 flex flex-col gap-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-blue-900">Tahap 2: First Check (Pelaksana)</span>
+                <span class="text-slate-600">Diterima: <strong>${escapeHtml(d.receiveTime)}</strong></span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal First Check</label>
+                <input type="date" id="qm-date-input" value="${todayVal}" min="${escapeHtml(d.receiveTime)}" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Pelaksana</label>
+                <input type="text" id="qm-pic-input" value="${escapeHtml(d.firstPic || "")}" placeholder="Misal: Rina" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <button type="button" onclick="quickAdvanceStep('${escapeHtml(batch.id)}', '${docCode}', 'FIRST')" class="w-full py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Selesaikan First Check</button>
+            </div>
+          `;
+        } else if (!d.secondCheckTime) {
+          stepHtml = `
+            <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-3.5 flex flex-col gap-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-amber-900">Tahap 3: Second Check (SPV / Officer)</span>
+                <span class="text-slate-600">1st Check: <strong>${escapeHtml(d.firstCheckTime)}</strong></span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Second Check</label>
+                <input type="date" id="qm-date-input" value="${todayVal}" min="${escapeHtml(d.firstCheckTime)}" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama SPV / Officer</label>
+                <input type="text" id="qm-pic-input" value="${escapeHtml(d.secondPic || "")}" placeholder="Misal: Budi Santoso" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <button type="button" onclick="quickAdvanceStep('${escapeHtml(batch.id)}', '${docCode}', 'SECOND')" class="w-full py-2 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Verifikasi Second Check</button>
+            </div>
+          `;
+        } else {
+          const p1 = diffDays(d.receiveTime, d.firstCheckTime);
+          const p2 = diffDays(d.firstCheckTime, d.secondCheckTime);
+          stepHtml = `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-950 flex flex-col gap-1.5">
+              <div class="font-bold text-emerald-800">✓ Dokumen Sudah Verified</div>
+              <div><strong>Tgl Terima:</strong> ${escapeHtml(d.receiveTime)}</div>
+              <div><strong>First Check:</strong> ${escapeHtml(d.firstCheckTime)} (${escapeHtml(d.firstPic || "Pelaksana")}) • Durasi Point 1: <strong>${p1} hari</strong></div>
+              <div><strong>Second Check:</strong> ${escapeHtml(d.secondCheckTime)} (${escapeHtml(d.secondPic || "SPV")}) • Durasi Point 2: <strong>${p2} hari</strong></div>
+            </div>
+          `;
+        }
+
+        body.innerHTML = naSectionHtml + stepHtml;
+        document.getElementById("doc-modal").classList.remove("hidden");
+      }
+
+      function closeDocModal() {
+        document.getElementById("doc-modal").classList.add("hidden");
+      }
+
+      function quickToggleRequired(batchId, docCode) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch) return;
+        const d = batch.docs[docCode];
+        d.required = !d.required;
+        if (!d.required) {
+          d.receiveTime = "";
+          d.firstCheckTime = "";
+          d.firstPic = "";
+          d.secondCheckTime = "";
+          d.secondPic = "";
+        }
+        saveBatches();
+        renderDashboard();
+        openDocModal(batchId, docCode);
+        showToast(`${docCode} diubah menjadi ${d.required ? "Dokumen Wajib" : "Tidak Perlu (N/A)"}.`, "success");
+      }
+
+      function quickSaveNaNote(batchId, docCode) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch) return;
+        const noteEl = document.getElementById("qm-na-note");
+        batch.docs[docCode].naNote = noteEl ? noteEl.value.trim() : "";
+        saveBatches();
+        renderDashboard();
+        showToast(`Alasan N/A untuk ${docCode} disimpan.`, "success");
+      }
+
+      function quickAdvanceStep(batchId, docCode, step) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch) return;
+        const d = batch.docs[docCode];
+        const dateVal = normalizeDateStr(document.getElementById("qm-date-input").value);
+
+        if (!dateVal) {
+          showToast("Tanggal wajib diisi.", "error");
+          return;
+        }
+
+        if (step === "RECEIVE") {
+          const noteVal = (document.getElementById("qm-note-input").value || "").trim();
+          d.receiveTime = dateVal;
+          if (noteVal) d.arrivalNote = noteVal;
+          saveBatches();
+          closeDocModal();
+          renderDashboard();
+          const ev = evaluateBatch(batch);
+          showToast(
+            ev.isTodayComplete
+              ? `Dokumen ${docCode} masuk — Batch ${batch.id} LENGKAP pada hari berjalan!`
+              : `Tanggal terima ${docCode} disimpan (${dateVal}).`,
+            "success"
+          );
+          return;
+        }
+
+        if (step === "FIRST") {
+          if (diffDays(d.receiveTime, dateVal) < 0) {
+            showToast("Tanggal 1st Check tidak boleh lebih awal dari Tanggal Terima.", "error");
+            return;
+          }
+          const picVal = (document.getElementById("qm-pic-input").value || "").trim();
+          d.firstCheckTime = dateVal;
+          d.firstPic = picVal || "Pelaksana";
+          saveBatches();
+          closeDocModal();
+          renderDashboard();
+          showToast(`First Check ${docCode} selesai (${dateVal}).`, "success");
+          return;
+        }
+
+        if (step === "SECOND") {
+          if (diffDays(d.firstCheckTime, dateVal) < 0) {
+            showToast("Tanggal 2nd Check tidak boleh lebih awal dari Tanggal 1st Check.", "error");
+            return;
+          }
+          const picVal = (document.getElementById("qm-pic-input").value || "").trim();
+          d.secondCheckTime = dateVal;
+          d.secondPic = picVal || "SPV / Officer";
+          saveBatches();
+          closeDocModal();
+          renderDashboard();
+          const ev = evaluateBatch(batch);
+          showToast(
+            ev.allVerified
+              ? `Semua dokumen wajib ${batch.id} Verified! Siap Save DPJ.`
+              : `Second Check ${docCode} terverifikasi (${dateVal}).`,
+            "success"
+          );
+        }
+      }
+
+      /* =====================================================================
+         12. MODAL 3: DETAIL BATCH LENGKAP & SAVE DPJ (1X PER BATCH)
+         ===================================================================== */
+      function openNewBatchModal() {
+        editingOriginalId = null;
+        draftUnlocked = true;
+        formDraft = {
+          id: generateNextBatchId(),
+          batchNo: "",
+          productName: "",
+          batchName: "",
+          dpjTime: "",
+          dpjPic: "",
+          docs: createEmptyDocs()
+        };
+        document.getElementById("batch-modal-title").textContent = "Buat Batch Perilisan Baru";
+        renderBatchModal();
+        document.getElementById("batch-modal").classList.remove("hidden");
+      }
+
+      function openBatchModal(batchId) {
+        const found = batches.find(b => b.id === batchId);
+        if (!found) return;
+        editingOriginalId = found.id;
+        formDraft = cloneObj(found);
+        const ev = evaluateBatch(formDraft);
+        draftUnlocked = ev.statusLabel !== "Released";
+        document.getElementById("batch-modal-title").textContent = `Detail Batch — ${found.id}`;
+        renderBatchModal();
+        document.getElementById("batch-modal").classList.remove("hidden");
+      }
+
+      function closeBatchModal() {
+        document.getElementById("batch-modal").classList.add("hidden");
+        formDraft = null;
+      }
+
+      function unlockDraftBatch() {
+        draftUnlocked = true;
+        renderBatchModal();
+        showToast("Mode koreksi Admin aktif untuk batch ini.", "success");
+      }
+
+      function syncDraftBatchName() {
+        if (!formDraft) return;
+        const pName = (formDraft.productName || "").trim();
+        const bNo = (formDraft.batchNo || "").trim();
+        if (pName && bNo) {
+          formDraft.batchName = `${pName} — Bets ${bNo}`;
+        } else if (pName) {
+          formDraft.batchName = pName;
+        }
+      }
+
+      function onBatchModalBetsInput(val) {
+        if (!formDraft) return;
+        formDraft.batchNo = val;
+        const det = detectBetsPattern(val);
+        if (det.state === "MATCHED" && det.matchedProduct) {
+          if (!formDraft.productName || formDraft.productName === lastAutoDetectedName) {
+            formDraft.productName = det.matchedProduct.name;
+            lastAutoDetectedName = det.matchedProduct.name;
+            const nameEl = document.getElementById("bm-batch-name");
+            if (nameEl) nameEl.value = formDraft.productName;
+          }
+        }
+        syncDraftBatchName();
+        renderBatchModalBetsBadge();
+      }
+
+      function onBatchModalNameInput(val) {
+        if (!formDraft) return;
+        formDraft.productName = val;
+        syncDraftBatchName();
+      }
+
+      function onBatchModalProductPreset(prodId) {
+        if (!formDraft) return;
+        const prod = masterProducts.find(p => p.id === prodId);
+        if (!prod) return;
+        formDraft.productName = prod.name;
+        lastAutoDetectedName = prod.name;
+        document.getElementById("bm-batch-name").value = prod.name;
+        if (prod.codeAA && !String(formDraft.batchNo || "").trim()) {
+          const yr = String(normalizeDateStr(activeDateStr) || getSystemTodayStr()).slice(2, 4);
+          formDraft.batchNo = `${String(prod.codeAA).toUpperCase()}01${yr}`;
+          document.getElementById("bm-batch-no").value = formDraft.batchNo;
+        }
+        syncDraftBatchName();
+        renderBatchModalBetsBadge();
+      }
+
+      function renderBatchModalBetsBadge() {
+        const badge = document.getElementById("bm-bets-detect-badge");
+        if (!badge || !formDraft) return;
+        const det = detectBetsPattern(formDraft.batchNo);
+        if (det.state === "EMPTY") {
+          badge.classList.add("hidden");
+          return;
+        }
+        badge.className = `sm:col-span-3 px-3 py-2 rounded-xl text-xs font-semibold border ${det.badgeClass}`;
+        badge.textContent = det.badgeText;
+        badge.classList.remove("hidden");
+      }
+
+      function renderBatchModal() {
+        if (!formDraft) return;
+        const ev = evaluateBatch(formDraft);
+        const isLocked = ev.statusLabel === "Released" && !draftUnlocked;
+
+        const lockBanner = document.getElementById("batch-lock-banner");
+        if (lockBanner) lockBanner.classList.toggle("hidden", !isLocked);
+
+        const idInput = document.getElementById("bm-release-id");
+        const betsInput = document.getElementById("bm-batch-no");
+        const nameInput = document.getElementById("bm-batch-name");
+        const presetSel = document.getElementById("bm-product-preset");
+
+        const derivedProductName = formDraft.productName || String(formDraft.batchName || "").split(" — Bets ")[0] || "";
+        const derivedBatchNo = formDraft.batchNo || (String(formDraft.batchName || "").split(" — Bets ")[1] || "");
+        formDraft.productName = derivedProductName;
+        formDraft.batchNo = derivedBatchNo;
+
+        idInput.value = formDraft.id || "";
+        betsInput.value = formDraft.batchNo || "";
+        nameInput.value = formDraft.productName || "";
+        idInput.disabled = isLocked || Boolean(editingOriginalId);
+        betsInput.disabled = isLocked;
+        nameInput.disabled = isLocked;
+        if (presetSel) {
+          populateProductPresetSelect(presetSel, false);
+          presetSel.disabled = isLocked;
+        }
+        renderBatchModalBetsBadge();
+
+        const docsContainer = document.getElementById("bm-docs-container");
+        docsContainer.innerHTML = DOC_LIST.map(def => {
+          const d = formDraft.docs[def.code];
+          const p1 = (d.required && d.receiveTime && d.firstCheckTime) ? diffDays(d.receiveTime, d.firstCheckTime) : null;
+          const p2 = (d.required && d.firstCheckTime && d.secondCheckTime) ? diffDays(d.firstCheckTime, d.secondCheckTime) : null;
+
+          const cardBg = !d.required ? "bg-slate-50/80 opacity-80" : "bg-white";
+          const inputsDisabled = isLocked || !d.required;
+
+          return `
+            <div class="${cardBg} border border-slate-200 rounded-xl p-3.5">
+              <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-slate-900 text-white text-xs font-extrabold">${def.code}</span>
+                  <span class="text-xs font-bold text-slate-900">${def.label}</span>
+                  <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">${def.group}</span>
+                </div>
+
+                <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                  <input type="checkbox" ${d.required ? "checked" : ""} ${isLocked ? "disabled" : ""} onchange="onDraftDocRequired('${def.code}', this.checked)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  <span>Dokumen Diperlukan</span>
+                </label>
+              </div>
+
+              ${!d.required ? `
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Alasan Tidak Perlu / N/A</label>
+                  <input type="text" value="${escapeHtml(d.naNote || "")}" ${isLocked ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'naNote', this.value)" placeholder="Contoh: Sediaan non-steril tidak perlu MC" class="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg" />
+                </div>
+              ` : `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[11px] font-bold text-slate-700">1. Tanggal Terima</span>
+                      ${!inputsDisabled ? `<button type="button" onclick="setDraftDocToday('${def.code}', 'receiveTime')" class="text-[11px] font-semibold text-blue-600 hover:underline">Hari Ini</button>` : ""}
+                    </div>
+                    <input type="date" value="${escapeHtml(d.receiveTime || "")}" ${inputsDisabled ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'receiveTime', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg" />
+                  </div>
+
+                  <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[11px] font-bold text-blue-800">2. 1st Check ${p1 !== null && p1 >= 0 ? `(${p1}h)` : ""}</span>
+                      ${!inputsDisabled && d.receiveTime ? `<button type="button" onclick="setDraftDocToday('${def.code}', 'firstCheckTime')" class="text-[11px] font-semibold text-blue-600 hover:underline">Hari Ini</button>` : ""}
+                    </div>
+                    <input type="date" value="${escapeHtml(d.firstCheckTime || "")}" ${inputsDisabled || !d.receiveTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'firstCheckTime', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg mb-1.5" />
+                    <input type="text" value="${escapeHtml(d.firstPic || "")}" ${inputsDisabled || !d.receiveTime ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'firstPic', this.value)" placeholder="PIC Pelaksana" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+                  </div>
+
+                  <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[11px] font-bold text-indigo-800">3. 2nd Check ${p2 !== null && p2 >= 0 ? `(${p2}h)` : ""}</span>
+                      ${!inputsDisabled && d.firstCheckTime ? `<button type="button" onclick="setDraftDocToday('${def.code}', 'secondCheckTime')" class="text-[11px] font-semibold text-indigo-600 hover:underline">Hari Ini</button>` : ""}
+                    </div>
+                    <input type="date" value="${escapeHtml(d.secondCheckTime || "")}" ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'secondCheckTime', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg mb-1.5" />
+                    <input type="text" value="${escapeHtml(d.secondPic || "")}" ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'secondPic', this.value)" placeholder="PIC SPV / Officer" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+                  </div>
+                </div>
+              `}
+            </div>
+          `;
+        }).join("");
+
+        // Sync Point 3 (Save DPJ) section
+        const dpjDateInput = document.getElementById("bm-dpj-date");
+        const dpjPicInput = document.getElementById("bm-dpj-pic");
+        const dpjBadge = document.getElementById("bm-dpj-badge");
+        const dpjReadiness = document.getElementById("bm-dpj-readiness");
+        const saveProgressBtn = document.getElementById("bm-save-progress-btn");
+        const saveDpjBtn = document.getElementById("bm-save-dpj-btn");
+        const dpjTodayBtn = document.getElementById("bm-dpj-today-btn");
+
+        dpjDateInput.value = formDraft.dpjTime || "";
+        dpjPicInput.value = formDraft.dpjPic || "";
+
+        const canDpj = ev.allVerified && !isLocked;
+        dpjDateInput.disabled = !canDpj;
+        dpjPicInput.disabled = !canDpj;
+        dpjTodayBtn.disabled = !canDpj;
+        saveProgressBtn.disabled = isLocked;
+        saveDpjBtn.disabled = !canDpj;
+
+        if (ev.statusLabel === "Released") {
+          dpjBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800";
+          dpjBadge.textContent = "Released (DPJ Tersimpan)";
+          dpjReadiness.textContent = `Save DPJ selesai pada ${formDraft.dpjTime} oleh ${formDraft.dpjPic || "SPV/Officer"}.`;
+        } else if (ev.allVerified) {
+          dpjBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800";
+          dpjBadge.textContent = "Ready for DPJ";
+          dpjReadiness.textContent = `Seluruh ${ev.requiredCount} dokumen wajib sudah Verified (2nd check terakhir: ${ev.maxSecondCheckTime}). Siap Save DPJ!`;
+        } else {
+          dpjBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800";
+          dpjBadge.textContent = `Belum Siap DPJ (${ev.verifiedCount}/${ev.requiredCount})`;
+          dpjReadiness.textContent = "Tombol Save DPJ aktif otomatis setelah semua dokumen wajib selesai 2nd Check.";
+        }
+      }
+
+      function onDraftDocRequired(code, isReq) {
+        if (!formDraft) return;
+        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.productName = document.getElementById("bm-batch-name").value.trim();
+        syncDraftBatchName();
+        formDraft.docs[code].required = Boolean(isReq);
+        if (!isReq) {
+          formDraft.docs[code].receiveTime = "";
+          formDraft.docs[code].firstCheckTime = "";
+          formDraft.docs[code].firstPic = "";
+          formDraft.docs[code].secondCheckTime = "";
+          formDraft.docs[code].secondPic = "";
+        }
+        renderBatchModal();
+      }
+
+      function onDraftDocField(code, field, val) {
+        if (!formDraft) return;
+        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.productName = document.getElementById("bm-batch-name").value.trim();
+        syncDraftBatchName();
+        const d = formDraft.docs[code];
+
+        if (field === "receiveTime" || field === "firstCheckTime" || field === "secondCheckTime") {
+          const clean = normalizeDateStr(val);
+          if (field === "firstCheckTime" && clean && d.receiveTime && diffDays(d.receiveTime, clean) < 0) {
+            showToast("Tanggal 1st Check tidak boleh lebih awal dari Tanggal Terima.", "error");
+            renderBatchModal();
+            return;
+          }
+          if (field === "secondCheckTime" && clean && d.firstCheckTime && diffDays(d.firstCheckTime, clean) < 0) {
+            showToast("Tanggal 2nd Check tidak boleh lebih awal dari Tanggal 1st Check.", "error");
+            renderBatchModal();
+            return;
+          }
+          d[field] = clean;
+          if (field === "receiveTime" && !clean) {
+            d.firstCheckTime = "";
+            d.secondCheckTime = "";
+          }
+          if (field === "firstCheckTime" && !clean) {
+            d.secondCheckTime = "";
+          }
+          renderBatchModal();
+          return;
+        }
+
+        d[field] = val;
+      }
+
+      function setDraftDocToday(code, field) {
+        const todayVal = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        onDraftDocField(code, field, todayVal);
+      }
+
+      function onDraftDpjChange(field, val) {
+        if (!formDraft) return;
+        formDraft[field] = field === "dpjTime" ? normalizeDateStr(val) : val;
+      }
+
+      function setDraftDpjToday() {
+        if (!formDraft) return;
+        formDraft.dpjTime = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        renderBatchModal();
+      }
+
+      function saveBatchProgress() {
+        if (!formDraft) return;
+        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.productName = document.getElementById("bm-batch-name").value.trim();
+        syncDraftBatchName();
+
+        if (!formDraft.id || !formDraft.productName) {
+          showToast("ID Perilisan dan Nama Produk wajib diisi.", "error");
+          return;
+        }
+
+        const ev = evaluateBatch(formDraft);
+        if (ev.requiredCount === 0) {
+          showToast("Minimal harus ada 1 dokumen wajib pada setiap batch.", "error");
+          return;
+        }
+
+        const savedCopy = cloneObj(formDraft);
+        if (editingOriginalId) {
+          const idx = batches.findIndex(b => b.id === editingOriginalId);
+          if (idx !== -1) batches[idx] = savedCopy;
+          else batches.unshift(savedCopy);
+        } else {
+          if (batches.some(b => b.id.toLowerCase() === savedCopy.id.toLowerCase())) {
+            showToast(`ID Perilisan ${savedCopy.id} sudah digunakan.`, "error");
+            return;
+          }
+          batches.unshift(savedCopy);
+        }
+
+        saveBatches();
+        closeBatchModal();
+        renderDashboard();
+        showToast(`Progres batch ${savedCopy.id} berhasil disimpan.`, "success");
+      }
+
+      function executeSaveDpj() {
+        if (!formDraft) return;
+        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.productName = document.getElementById("bm-batch-name").value.trim();
+        syncDraftBatchName();
+        formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
+        formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
+
+        if (!formDraft.id || !formDraft.productName) {
+          showToast("ID Perilisan dan Nama Produk wajib diisi.", "error");
+          return;
+        }
+
+        const ev = evaluateBatch(formDraft);
+        if (ev.requiredCount === 0) {
+          showToast("Minimal harus ada 1 dokumen wajib pada setiap batch.", "error");
+          return;
+        }
+
+        const savedCopy = cloneObj(formDraft);
+        if (editingOriginalId) {
+          const idx = batches.findIndex(b => b.id === editingOriginalId);
+          if (idx !== -1) batches[idx] = savedCopy;
+          else batches.unshift(savedCopy);
+        } else {
+          if (batches.some(b => b.id.toLowerCase() === savedCopy.id.toLowerCase())) {
+            showToast(`ID Perilisan ${savedCopy.id} sudah digunakan.`, "error");
+            return;
+          }
+          batches.unshift(savedCopy);
+        }
+
+        saveBatches();
+        closeBatchModal();
+        renderDashboard();
+        showToast(`Progres batch ${savedCopy.id} berhasil disimpan.`, "success");
+      }
+
+      function executeSaveDpj() {
+        if (!formDraft) return;
+        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.batchName = document.getElementById("bm-batch-name").value.trim();
+        formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
+        formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
+
+        if (!formDraft.id || !formDraft.batchName) {
+          showToast("ID Perilisan dan Nama Batch wajib diisi.", "error");
+          return;
+        }
+
+        const ev = evaluateBatch(formDraft);
+        if (!ev.allVerified) {
+          showToast("Seluruh dokumen wajib harus selesai 2nd Check sebelum Save DPJ.", "error");
+          return;
+        }
+
+        if (!formDraft.dpjTime) {
+          formDraft.dpjTime = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        }
+        if (!formDraft.dpjPic) {
+          formDraft.dpjPic = "SPV / Officer";
+        }
+
+        if (ev.maxSecondCheckTime && diffDays(ev.maxSecondCheckTime, formDraft.dpjTime) < 0) {
+          showToast(`Tanggal Save DPJ (${formDraft.dpjTime}) tidak boleh lebih awal dari 2nd Check terakhir (${ev.maxSecondCheckTime}).`, "error");
+          return;
+        }
+
+        const savedCopy = cloneObj(formDraft);
+        if (editingOriginalId) {
+          const idx = batches.findIndex(b => b.id === editingOriginalId);
+          if (idx !== -1) batches[idx] = savedCopy;
+          else batches.unshift(savedCopy);
+        } else {
+          batches.unshift(savedCopy);
+        }
+
+        saveBatches();
+        closeBatchModal();
+        renderDashboard();
+        showToast(`Save DPJ berhasil untuk batch ${savedCopy.id} pada ${savedCopy.dpjTime}.`, "success");
+      }
+
+      function quickSaveDpjToday(batchId) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch) return;
+        const ev = evaluateBatch(batch);
+        if (!ev.allVerified) {
+          showToast("Seluruh dokumen wajib harus Verified sebelum Save DPJ.", "error");
+          return;
+        }
+        const todayVal = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        if (ev.maxSecondCheckTime && diffDays(ev.maxSecondCheckTime, todayVal) < 0) {
+          showToast(`Tanggal berjalan (${todayVal}) lebih awal dari 2nd Check terakhir (${ev.maxSecondCheckTime}).`, "error");
+          return;
+        }
+        batch.dpjTime = todayVal;
+        if (!batch.dpjPic) batch.dpjPic = "SPV / Officer";
+        saveBatches();
+        renderDashboard();
+        showToast(`Save DPJ berhasil untuk ${batch.id} pada ${todayVal}.`, "success");
+      }
+
+      function resetDemoData() {
+        if (window.__ctSync && window.__ctSync.onBatchesSaved &&
+            !window.confirm("Reset akan MENGGANTI data di SEMUA perangkat dengan data demo. Lanjutkan?")) return;
+        batches = getDefaultBatches(activeDateStr);
+        masterProducts = getDefaultProducts();
+        currentPage = 1;
+        saveBatches();
+        saveProducts();
+        renderDashboard();
+        showToast("Data demo & Master Produk berhasil direset ke kondisi awal.", "success");
+      }
+
+      /* =====================================================================
+         12B. MODAL 4: MASTER PRODUK CRUD
+         ===================================================================== */
+      function openMasterModal() {
+        resetMasterProductForm();
+        renderMasterProductTable();
+        document.getElementById("master-modal").classList.remove("hidden");
+      }
+
+      function closeMasterModal() {
+        document.getElementById("master-modal").classList.add("hidden");
+        editingProductId = null;
+      }
+
+      function resetMasterProductForm() {
+        editingProductId = null;
+        draftDefaultDocs = ["PP", "KP", "KS", "QC", "MC"];
+        document.getElementById("mp-form-title").textContent = "Tambah Produk ke Master";
+        document.getElementById("mp-code-aa").value = "";
+        document.getElementById("mp-name").value = "";
+        document.getElementById("mp-submit-btn").textContent = "Simpan Produk";
+        renderMasterDefaultDocCheckboxes();
+      }
+
+      function renderMasterDefaultDocCheckboxes() {
+        const wrap = document.getElementById("mp-default-docs");
+        if (!wrap) return;
+        wrap.innerHTML = DOC_LIST.map(def => {
+          const checked = draftDefaultDocs.includes(def.code);
+          return `
+            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleMasterDefaultDoc('${def.code}', this.checked)" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <span>${def.code}</span>
+            </label>
+          `;
+        }).join("");
+      }
+
+      function toggleMasterDefaultDoc(code, isChecked) {
+        if (isChecked) {
+          if (!draftDefaultDocs.includes(code)) draftDefaultDocs.push(code);
+        } else {
+          draftDefaultDocs = draftDefaultDocs.filter(c => c !== code);
+        }
+      }
+
+      function editMasterProduct(prodId) {
+        const prod = masterProducts.find(p => p.id === prodId);
+        if (!prod) return;
+        editingProductId = prod.id;
+        draftDefaultDocs = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? cloneObj(prod.defaultDocs) : ["PP", "KP", "KS", "QC", "MC"];
+        document.getElementById("mp-form-title").textContent = `Edit Produk — ${prod.name}`;
+        document.getElementById("mp-code-aa").value = prod.codeAA || "";
+        document.getElementById("mp-name").value = prod.name || "";
+        document.getElementById("mp-submit-btn").textContent = "Perbarui Produk";
+        renderMasterDefaultDocCheckboxes();
+      }
+
+      function deleteMasterProduct(prodId) {
+        masterProducts = masterProducts.filter(p => p.id !== prodId);
+        if (editingProductId === prodId) resetMasterProductForm();
+        saveProducts();
+        renderMasterProductTable();
+        renderIncomingDocChoices();
+        showToast("Produk dihapus dari Master Produk.", "success");
+      }
+
+      function saveMasterProduct(ev) {
+        if (ev) ev.preventDefault();
+        const codeAA = (document.getElementById("mp-code-aa").value || "").trim().toUpperCase();
+        const name = (document.getElementById("mp-name").value || "").trim();
+
+        if (!name) {
+          showToast("Nama Produk wajib diisi.", "error");
+          return;
+        }
+        if (codeAA && codeAA.length !== 2) {
+          showToast("Kode AA harus tepat 2 karakter (atau dikosongkan jika non-AABBCC).", "error");
+          return;
+        }
+        if (codeAA) {
+          const dup = masterProducts.find(p => String(p.codeAA || "").toUpperCase() === codeAA && p.id !== editingProductId);
+          if (dup) {
+            showToast(`Kode AA "${codeAA}" sudah dipakai oleh produk ${dup.name}.`, "error");
+            return;
+          }
+        }
+
+        const docsToSave = draftDefaultDocs.length ? cloneObj(draftDefaultDocs) : ["PP", "KP", "KS", "QC", "MC"];
+
+        if (editingProductId) {
+          const idx = masterProducts.findIndex(p => p.id === editingProductId);
+          if (idx !== -1) {
+            masterProducts[idx] = { id: editingProductId, codeAA, name, defaultDocs: docsToSave };
+          }
+          showToast(`Master produk "${name}" diperbarui.`, "success");
+        } else {
+          masterProducts.unshift({
+            id: `prod-${Date.now()}`,
+            codeAA,
+            name,
+            defaultDocs: docsToSave
+          });
+          showToast(`Produk "${name}" ditambahkan ke Master Produk.`, "success");
+        }
+
+        saveProducts();
+        resetMasterProductForm();
+        renderMasterProductTable();
+        renderIncomingDocChoices();
+      }
+
+      function renderMasterProductTable() {
+        const tbody = document.getElementById("mp-tbody");
+        const countLabel = document.getElementById("mp-count-label");
+        if (!tbody) return;
+        if (countLabel) countLabel.textContent = String(masterProducts.length);
+
+        if (masterProducts.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada produk di Master Produk.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = masterProducts.map(p => {
+          const aaBadge = p.codeAA
+            ? `<span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-extrabold">${escapeHtml(String(p.codeAA).toUpperCase())}</span>`
+            : `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold">Opsional / Non-AA</span>`;
+
+          const docsBadges = (Array.isArray(p.defaultDocs) ? p.defaultDocs : ["PP", "KP", "KS", "QC", "MC"])
+            .map(c => `<span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">${escapeHtml(c)}</span>`)
+            .join(" ");
+
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2.5 px-4 whitespace-nowrap">${aaBadge}</td>
+              <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(p.name)}</td>
+              <td class="py-2.5 px-4"><div class="flex flex-wrap gap-1">${docsBadges}</div></td>
+              <td class="py-2.5 px-4 text-right whitespace-nowrap">
+                <button type="button" onclick="editMasterProduct('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 mr-1 transition">Edit</button>
+                <button type="button" onclick="deleteMasterProduct('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition">Hapus</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      /* =====================================================================
+         13. GLOBAL EXPORTS & BOOTSTRAP
+         ===================================================================== */
+      window.onActiveDateChange = onActiveDateChange;
+      window.onFilterChange = onFilterChange;
+      window.filterOnlyTodayComplete = filterOnlyTodayComplete;
+      window.clearFilters = clearFilters;
+      window.toggleIncomingFeed = toggleIncomingFeed;
+      window.toggleExpandIncomingFeed = toggleExpandIncomingFeed;
+      window.setTableDensity = setTableDensity;
+      window.onPageSizeChange = onPageSizeChange;
+      window.changePage = changePage;
+      window.setInputActiveDate = setInputActiveDate;
+
+      window.openIncomingModal = openIncomingModal;
+      window.closeIncomingModal = closeIncomingModal;
+      window.setIncomingMode = setIncomingMode;
+      window.renderIncomingDocChoices = renderIncomingDocChoices;
+      window.selectIncomingDoc = selectIncomingDoc;
+      window.submitIncomingDocument = submitIncomingDocument;
+      window.onIncomingBetsOrProductChange = onIncomingBetsOrProductChange;
+      window.onIncomingProductPresetChange = onIncomingProductPresetChange;
+
+      window.openDocModal = openDocModal;
+      window.closeDocModal = closeDocModal;
+      window.quickToggleRequired = quickToggleRequired;
+      window.quickSaveNaNote = quickSaveNaNote;
+      window.quickAdvanceStep = quickAdvanceStep;
+
+      window.openNewBatchModal = openNewBatchModal;
+      window.openBatchModal = openBatchModal;
+      window.closeBatchModal = closeBatchModal;
+      window.unlockDraftBatch = unlockDraftBatch;
+      window.onBatchModalBetsInput = onBatchModalBetsInput;
+      window.onBatchModalNameInput = onBatchModalNameInput;
+      window.onBatchModalProductPreset = onBatchModalProductPreset;
+      window.onDraftDocRequired = onDraftDocRequired;
+      window.onDraftDocField = onDraftDocField;
+      window.setDraftDocToday = setDraftDocToday;
+      window.onDraftDpjChange = onDraftDpjChange;
+      window.setDraftDpjToday = setDraftDpjToday;
+      window.saveBatchProgress = saveBatchProgress;
+      window.executeSaveDpj = executeSaveDpj;
+      window.quickSaveDpjToday = quickSaveDpjToday;
+      window.resetDemoData = resetDemoData;
+
+      window.openMasterModal = openMasterModal;
+      window.closeMasterModal = closeMasterModal;
+      window.resetMasterProductForm = resetMasterProductForm;
+      window.toggleMasterDefaultDoc = toggleMasterDefaultDoc;
+      window.editMasterProduct = editMasterProduct;
+      window.deleteMasterProduct = deleteMasterProduct;
+      window.saveMasterProduct = saveMasterProduct;
+
+      /* Jembatan ke lapisan sinkronisasi Firestore (modul di bawah) */
+      window.__ctSync = window.__ctSync || {};
+      Object.assign(window.__ctSync, {
+        getBatches: function () { return cloneObj(batches); },
+        getProducts: function () { return cloneObj(masterProducts); },
+        toast: function (msg, type) { showToast(msg, type); },
+        applyRemoteBatches: function (arr) {
+          batches = arr;
+          memoryFallback = cloneObj(batches);
+          try { if (window.localStorage) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(batches)); } catch (e) {}
+          renderDashboard();
+        },
+        applyRemoteProducts: function (arr) {
+          masterProducts = arr;
+          productMemoryFallback = cloneObj(masterProducts);
+          try { if (window.localStorage) window.localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(masterProducts)); } catch (e) {}
+          const mm = document.getElementById("master-modal");
+          if (mm && !mm.classList.contains("hidden")) renderMasterProductTable();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const picker = document.getElementById("active-date-picker");
+        if (picker) picker.value = activeDateStr;
+        loadProducts();
+        loadBatches();
+        renderDashboard();
+      });
+    })();
+  </script>
+
+  <!-- ======================================================================= -->
+  <!-- FIREBASE: INISIALISASI + AUTH GUARD + SINKRONISASI FIRESTORE             -->
+  <!-- ======================================================================= -->
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCgauuitX89coLfFSd6hBG1wR8NfebBSg",
+      authDomain: "brftxcycletime.firebaseapp.com",
+      projectId: "brftxcycletime",
+      storageBucket: "brftxcycletime.firebasestorage.app",
+      messagingSenderId: "434471197911",
+      appId: "1:434471197911:web:3d7c4028763d9d03816492",
+      measurementId: "G-W2TXSEHFJB"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    try { getAnalytics(app); } catch (e) { /* analytics tidak tersedia (offline / diblokir) */ }
+    const auth = getAuth(app);
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+
+    // Jika SDK gagal memberi status dalam 8 detik, arahkan ke halaman login
+    const guardTimeout = setTimeout(() => location.replace("login.html"), 8000);
+    let syncStarted = false;
+
+    onAuthStateChanged(auth, (user) => {
+      clearTimeout(guardTimeout);
+      if (!user) { location.replace("login.html"); return; }
+      const emailEl = document.getElementById("user-email");
+      if (emailEl) {
+        emailEl.textContent = user.displayName || user.email || "";
+        emailEl.title = user.email || "";
+      }
+      document.documentElement.classList.remove("auth-pending");
+      if (!syncStarted) { syncStarted = true; startCloudSync(user); }
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      try { await signOut(auth); } finally { location.replace("login.html"); }
+    });
+
+    /* =====================================================================
+       SINKRONISASI FIRESTORE
+       Struktur:  workspaces/main/batches/{b_<id>}   -> { o, data(JSON), updatedAt, updatedBy }
+                  workspaces/main/products/{p_<id>}  -> { o, data(JSON), updatedAt, updatedBy }
+       - Satu dokumen per batch/produk, jadi dua orang mengedit batch berbeda tidak saling menimpa.
+       - Cache offline (IndexedDB): perubahan saat offline diantrikan & terkirim otomatis saat online.
+       - Perangkat pertama yang login saat cloud kosong akan mengunggah data lokalnya (seed).
+       ===================================================================== */
+    const ui = {
+      dot: () => document.getElementById("sync-dot"),
+      text: () => document.getElementById("sync-text")
+    };
+    const STATES = {
+      connecting: ["bg-amber-400", "Menyambung…"],
+      synced:     ["bg-emerald-500", "Tersinkron"],
+      saving:     ["bg-blue-500", "Menyimpan…"],
+      offline:    ["bg-slate-400", "Offline — tersimpan lokal"],
+      error:      ["bg-red-500", "Gagal sinkron"],
+      local:      ["bg-slate-400", "Mode lokal"]
+    };
+    let currentState = "connecting";
+    function setStatus(kind) {
+      currentState = kind;
+      const d = ui.dot(), t = ui.text();
+      if (!d || !t) return;
+      d.className = "w-2 h-2 rounded-full " + STATES[kind][0];
+      t.textContent = STATES[kind][1];
+    }
+    function toast(msg, type) { if (window.__ctSync && window.__ctSync.toast) window.__ctSync.toast(msg, type); }
+
+    async function startCloudSync(user) {
+      let fs;
+      try {
+        fs = await import("https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js");
+      } catch (e) {
+        console.warn("Firestore gagal dimuat, berjalan dalam mode lokal.", e);
+        setStatus("local");
+        return;
+      }
+      const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+              collection, doc, onSnapshot, writeBatch, serverTimestamp } = fs;
+
+      let db;
+      try {
+        db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+      } catch (e) {
+        db = fs.getFirestore(app);
+      }
+
+      let pendingCommits = 0;
+      function refreshStatus() {
+        if (!navigator.onLine) setStatus("offline");
+        else if (pendingCommits > 0) setStatus("saving");
+        else if (currentState !== "error") setStatus("synced");
+      }
+      window.addEventListener("online", () => { if (currentState !== "error") refreshStatus(); });
+      window.addEventListener("offline", () => setStatus("offline"));
+
+      function createSync(name, prefix, bridgeGet, bridgeApply, hookName) {
+        const col = collection(db, "workspaces", "main", name);
+        const docRef = (id) => doc(db, "workspaces", "main", name, prefix + encodeURIComponent(String(id)));
+        const known = new Map();   // id -> { o, json }  (kondisi terakhir yang diketahui di cloud, termasuk antrian lokal)
+        let ready = false;
+
+        function rememberFrom(snap) {
+          known.clear();
+          const items = [];
+          snap.docs.forEach((d) => {
+            const v = d.data();
+            let obj;
+            try { obj = JSON.parse(v.data); } catch (e) { return; }
+            if (!obj || obj.id === undefined) return;
+            known.set(String(obj.id), { o: Number(v.o) || 0, json: v.data });
+            items.push({ o: Number(v.o) || 0, obj });
+          });
+          items.sort((a, b) => a.o - b.o);
+          return items.map((x) => x.obj);
+        }
+
+        function assignOrders(items) {
+          const orders = items.map((it) => (known.has(it.id) ? known.get(it.id).o : null));
+          for (let i = 0; i < orders.length; i++) {
+            if (orders[i] !== null) continue;
+            let prev = null, next = null;
+            for (let k = i - 1; k >= 0; k--) if (orders[k] !== null) { prev = orders[k]; break; }
+            for (let k = i + 1; k < orders.length; k++) if (orders[k] !== null) { next = orders[k]; break; }
+            if (prev === null && next === null) orders[i] = (i + 1) * 1000;
+            else if (prev === null) orders[i] = next - 1000;
+            else if (next === null) orders[i] = prev + 1000;
+            else orders[i] = (prev + next) / 2;
+          }
+          return orders;
+        }
+
+        async function flush(arr) {
+          const items = arr.map((obj) => ({ id: String(obj.id), obj, json: JSON.stringify(obj) }));
+          const orders = assignOrders(items);
+          const ops = [];
+          const seen = new Set();
+          items.forEach((it, i) => {
+            seen.add(it.id);
+            const k = known.get(it.id);
+            if (!k || k.json !== it.json || k.o !== orders[i]) {
+              ops.push({ type: "set", id: it.id, o: orders[i], json: it.json });
+              known.set(it.id, { o: orders[i], json: it.json });
+            }
+          });
+          Array.from(known.keys()).forEach((id) => {
+            if (!seen.has(id)) { ops.push({ type: "delete", id }); known.delete(id); }
+          });
+          if (!ops.length) return;
+
+          for (let i = 0; i < ops.length; i += 400) {
+            const wb = writeBatch(db);
+            ops.slice(i, i + 400).forEach((op) => {
+              if (op.type === "set") {
+                wb.set(docRef(op.id), { o: op.o, data: op.json, updatedAt: serverTimestamp(), updatedBy: user.email || user.uid });
+              } else {
+                wb.delete(docRef(op.id));
+              }
+            });
+            pendingCommits++; refreshStatus();
+            wb.commit()
+              .then(() => { pendingCommits--; refreshStatus(); })
+              .catch((err) => {
+                pendingCommits--;
+                console.error("Gagal menulis ke Firestore:", err);
+                setStatus("error");
+                toast("Gagal menyimpan ke cloud: " + (err.code || err.message), "error");
+              });
+          }
+        }
+
+        // Dipanggil dashboard setiap kali data lokal disimpan
+        window.__ctSync[hookName] = (arr) => { if (ready) flush(arr); };
+
+        onSnapshot(col, (snap) => {
+          const fromServer = !snap.metadata.fromCache;
+
+          if (!ready) {
+            if (snap.empty) {
+              if (!fromServer) return;           // cache kosong: tunggu jawaban server
+              ready = true;                      // cloud benar-benar kosong -> seed dari data lokal
+              flush(bridgeGet());
+              refreshStatus();
+              return;
+            }
+            ready = true;
+          } else {
+            const changes = snap.docChanges();
+            if (changes.length && changes.every((c) => c.doc.metadata.hasPendingWrites)) {
+              return;                            // gema dari tulisan lokal sendiri
+            }
+          }
+
+          const remoteArr = rememberFrom(snap);
+          if (JSON.stringify(remoteArr) !== JSON.stringify(bridgeGet())) bridgeApply(remoteArr);
+          if (fromServer) refreshStatus();
+        }, (err) => {
+          console.error("Snapshot error (" + name + "):", err);
+          setStatus("error");
+          toast(err.code === "permission-denied"
+            ? "Akses ke cloud ditolak. Periksa Firestore Rules / akun Anda."
+            : "Sinkronisasi gagal: " + (err.code || err.message), "error");
+        });
+      }
+
+      const bridge = window.__ctSync;
+      createSync("batches",  "b_", bridge.getBatches,  bridge.applyRemoteBatches,  "onBatchesSaved");
+      createSync("products", "p_", bridge.getProducts, bridge.applyRemoteProducts, "onProductsSaved");
+    }
+
+    // PWA: service worker
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>
