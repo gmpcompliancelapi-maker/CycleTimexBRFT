@@ -16,7 +16,20 @@
   <meta property="og:title" content="Cycle Time Perilisan" />
   <meta property="og:image" content="icons/og-image.png" />
   <!-- Sembunyikan halaman sampai status login terverifikasi (mencegah konten sempat terlihat) -->
-  <style>html.auth-pending body { visibility: hidden; }</style>
+  <style>
+    #auth-splash { display: none; position: fixed; inset: 0; z-index: 9999; background: #f1f5f9; align-items: center; justify-content: center; padding: 24px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    html.auth-pending #auth-splash { display: flex; }
+    html.auth-pending body > *:not(#auth-splash):not(script) { display: none !important; }
+    #auth-splash .box { max-width: 380px; width: 100%; text-align: center; color: #0f172a; }
+    #auth-splash img { width: 64px; height: 64px; border-radius: 16px; }
+    #auth-splash .spin { width: 28px; height: 28px; margin: 18px auto 10px; border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%; animation: ctspin .8s linear infinite; }
+    #auth-splash p { margin: 4px 0; font-size: 14px; color: #64748b; line-height: 1.5; }
+    #auth-splash #splash-err { display: none; margin-top: 14px; padding: 12px; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 13px; text-align: left; word-break: break-word; }
+    #auth-splash .btns { display: none; margin-top: 14px; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    #auth-splash button, #auth-splash a { font: 600 13px Inter, sans-serif; padding: 9px 14px; border-radius: 12px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; cursor: pointer; text-decoration: none; }
+    #auth-splash button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+    @keyframes ctspin { to { transform: rotate(360deg); } }
+  </style>
   <title>Cycle Time Perilisan — Dashboard & Workflow Document-First</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,6 +58,43 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+  <!-- Layar pemuatan (tampil sampai status login terverifikasi; tidak pernah putih kosong) -->
+  <div id="auth-splash" role="status" aria-live="polite">
+    <div class="box">
+      <img src="icons/icon-192x192.png" alt="" />
+      <div class="spin" id="splash-spin"></div>
+      <p id="splash-msg">Memuat dan memeriksa login…</p>
+      <div id="splash-err"></div>
+      <div class="btns" id="splash-btns">
+        <button type="button" class="primary" onclick="location.reload()">Muat Ulang</button>
+        <a href="login.html">Ke Halaman Login</a>
+        <button type="button" onclick="__resetAppCache()">Reset Cache &amp; Muat Ulang</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Klasik (bukan module) agar tetap jalan walau Firebase gagal dimuat
+    window.__authFail = function (msg) {
+      if (!document.documentElement.classList.contains("auth-pending")) return;
+      var e = document.getElementById("splash-err"), b = document.getElementById("splash-btns");
+      document.getElementById("splash-spin").style.display = "none";
+      document.getElementById("splash-msg").textContent = "Aplikasi belum bisa dibuka.";
+      e.textContent = msg; e.style.display = "block"; b.style.display = "flex";
+    };
+    window.__resetAppCache = function () {
+      var jobs = [];
+      if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+      if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+      Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+    };
+    window.addEventListener("error", function (ev) {
+      window.__authFail("Terjadi galat skrip: " + (ev && ev.message ? ev.message : "tidak diketahui"));
+    });
+    window.__splashWatchdog = setTimeout(function () {
+      window.__authFail("Waktu habis saat memuat Firebase / memeriksa login. Periksa koneksi internet atau coba Reset Cache.");
+    }, 10000);
+  </script>
 
   <!-- Toast Notification Stack -->
   <div id="toast-stack" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none" aria-live="polite"></div>
@@ -107,7 +157,14 @@
 
         <!-- Step 2: Select Incoming Document -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">2. Dokumen Mana yang Baru Datang?</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Dokumen Mana yang Baru Datang? <span class="normal-case font-semibold text-slate-500">(bisa lebih dari satu)</span></label>
+            <span class="text-[11px] font-semibold whitespace-nowrap">
+              <button type="button" onclick="selectAllIncomingDocs(true)" class="text-blue-700 hover:text-blue-900">Pilih semua</button>
+              <span class="text-slate-300 mx-1">|</span>
+              <button type="button" onclick="selectAllIncomingDocs(false)" class="text-slate-500 hover:text-slate-800">Hapus</button>
+            </span>
+          </div>
           <div id="inc-doc-choices" class="grid grid-cols-5 gap-2"></div>
           <p id="inc-doc-caption" class="mt-1.5 text-xs font-semibold text-blue-700"></p>
         </div>
@@ -1004,7 +1061,7 @@
       let formDraft = null;
       let draftUnlocked = false;
       let incomingMode = "existing";
-      let incomingSelectedDoc = "QC";
+      let incomingSelectedDocs = new Set(["QC"]);   // boleh lebih dari satu dokumen
       let feedVisible = true;
       let feedExpanded = false;
       let tableDensity = "compact";
@@ -1778,7 +1835,7 @@
         }).join("");
 
         if (preselectedDocCode) {
-          incomingSelectedDoc = preselectedDocCode;
+          incomingSelectedDocs = new Set([preselectedDocCode]);
         }
 
         if (preselectedBatchId && activeBatches.some(b => b.id === preselectedBatchId)) {
@@ -1851,7 +1908,7 @@
         }
 
         wrap.innerHTML = DOC_LIST.map(def => {
-          const isSelected = incomingSelectedDoc === def.code;
+          const isSelected = incomingSelectedDocs.has(def.code);
           let statusTag = "Baru";
           if (selectedBatch) {
             const d = selectedBatch.docs[def.code];
@@ -1865,16 +1922,18 @@
             : "bg-white text-slate-800 border-slate-300 hover:border-blue-400 hover:bg-blue-50";
 
           return `
-            <button type="button" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition ${btnStyle}">
-              <span class="text-xs font-extrabold">${def.code}</span>
+            <button type="button" aria-pressed="${isSelected}" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition ${btnStyle}">
+              <span class="text-xs font-extrabold">${isSelected ? "✓ " : ""}${def.code}</span>
               <span class="text-[10px] opacity-80">${statusTag}</span>
             </button>
           `;
         }).join("");
 
-        const activeDef = DOC_LIST.find(d => d.code === incomingSelectedDoc);
-        if (captionEl && activeDef) {
-          captionEl.textContent = `Terpilih: ${activeDef.label} (${activeDef.group})`;
+        if (captionEl) {
+          const chosen = DOC_LIST.filter(d => incomingSelectedDocs.has(d.code));
+          captionEl.textContent = chosen.length
+            ? `Terpilih (${chosen.length}): ${chosen.map(d => d.label).join(", ")}`
+            : "Belum ada dokumen dipilih — klik satu atau lebih dokumen.";
         }
       }
 
@@ -1947,7 +2006,14 @@
       }
 
       function selectIncomingDoc(code) {
-        incomingSelectedDoc = code;
+        // Klik = pilih / batalkan pilihan (bisa lebih dari satu)
+        if (incomingSelectedDocs.has(code)) incomingSelectedDocs.delete(code);
+        else incomingSelectedDocs.add(code);
+        renderIncomingDocChoices();
+      }
+
+      function selectAllIncomingDocs(selectAll) {
+        incomingSelectedDocs = new Set(selectAll ? DOC_LIST.map(d => d.code) : []);
         renderIncomingDocChoices();
       }
 
@@ -1959,6 +2025,13 @@
           showToast("Tanggal terima dokumen wajib diisi.", "error");
           return;
         }
+
+        const selectedCodes = DOC_LIST.map(d => d.code).filter(c => incomingSelectedDocs.has(c));
+        if (selectedCodes.length === 0) {
+          showToast("Pilih minimal satu dokumen yang masuk.", "error");
+          return;
+        }
+        const codesText = selectedCodes.join(", ");
 
         if (incomingMode === "new") {
           const newId = (document.getElementById("inc-new-id").value || "").trim();
@@ -1989,7 +2062,7 @@
           const applyDefCheckbox = document.getElementById("inc-apply-default-docs");
           if (det.state === "MATCHED" && det.matchedProduct && applyDefCheckbox && applyDefCheckbox.checked && Array.isArray(det.matchedProduct.defaultDocs) && det.matchedProduct.defaultDocs.length > 0) {
             const reqSet = new Set(det.matchedProduct.defaultDocs);
-            reqSet.add(incomingSelectedDoc);
+            selectedCodes.forEach(c => reqSet.add(c));
             DOC_LIST.forEach(def => {
               if (!reqSet.has(def.code)) {
                 newBatch.docs[def.code].required = false;
@@ -1998,14 +2071,16 @@
             });
           }
 
-          newBatch.docs[incomingSelectedDoc].receiveTime = receiveDate;
-          newBatch.docs[incomingSelectedDoc].arrivalNote = note;
+          selectedCodes.forEach(code => {
+            newBatch.docs[code].receiveTime = receiveDate;
+            newBatch.docs[code].arrivalNote = note;
+          });
 
           batches.unshift(newBatch);
           saveBatches();
           closeIncomingModal();
           renderDashboard();
-          showToast(`Batch ${batchLabel(newBatch)} dibuat dengan dokumen masuk pertama: ${incomingSelectedDoc}.`, "success");
+          showToast(`Batch ${batchLabel(newBatch)} dibuat dengan dokumen masuk: ${codesText}.`, "success");
           return;
         }
 
@@ -2016,13 +2091,25 @@
           return;
         }
 
-        const docObj = targetBatch.docs[incomingSelectedDoc];
-        if (!docObj.required) {
-          docObj.required = true;
-          docObj.naNote = "";
+        // Jangan menimpa tanggal terima yang sudah tercatat tanpa konfirmasi
+        const conflicts = selectedCodes.filter(c => {
+          const d = targetBatch.docs[c];
+          return d.required && d.receiveTime && d.receiveTime !== receiveDate;
+        });
+        if (conflicts.length > 0) {
+          const list = conflicts.map(c => `${c} (${targetBatch.docs[c].receiveTime})`).join(", ");
+          if (!window.confirm(`Dokumen berikut sudah tercatat tanggal terimanya: ${list}.\nTimpa dengan ${receiveDate}?`)) return;
         }
-        docObj.receiveTime = receiveDate;
-        if (note) docObj.arrivalNote = note;
+
+        selectedCodes.forEach(code => {
+          const docObj = targetBatch.docs[code];
+          if (!docObj.required) {
+            docObj.required = true;
+            docObj.naNote = "";
+          }
+          docObj.receiveTime = receiveDate;
+          if (note) docObj.arrivalNote = note;
+        });
 
         saveBatches();
         closeIncomingModal();
@@ -2030,9 +2117,9 @@
 
         const ev = evaluateBatch(targetBatch);
         if (ev.isTodayComplete) {
-          showToast(`Dokumen ${incomingSelectedDoc} masuk — Batch ${batchLabel(targetBatch)} LENGKAP pada hari berjalan!`, "success");
+          showToast(`Dokumen ${codesText} masuk — Batch ${batchLabel(targetBatch)} LENGKAP pada hari berjalan!`, "success");
         } else {
-          showToast(`Kedatangan dokumen ${incomingSelectedDoc} dicatat pada ${batchLabel(targetBatch)}.`, "success");
+          showToast(`Kedatangan dokumen ${codesText} dicatat pada ${batchLabel(targetBatch)}.`, "success");
         }
       }
 
@@ -2927,6 +3014,7 @@
       window.setIncomingMode = setIncomingMode;
       window.renderIncomingDocChoices = renderIncomingDocChoices;
       window.selectIncomingDoc = selectIncomingDoc;
+      window.selectAllIncomingDocs = selectAllIncomingDocs;
       window.submitIncomingDocument = submitIncomingDocument;
       window.onIncomingBetsOrProductChange = onIncomingBetsOrProductChange;
       window.onIncomingProductPresetChange = onIncomingProductPresetChange;
@@ -3001,9 +3089,17 @@
   <!-- ======================================================================= -->
   <script type="module">
     // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-analytics.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js";
+    // (dimuat dengan import() agar kegagalan jaringan/CDN bisa ditangkap dan tidak membuat layar putih)
+    const FB = "https://www.gstatic.com/firebasejs/13.4.0/";
+    let initializeApp, getAnalytics, getAuth, onAuthStateChanged, signOut;
+    try {
+      ({ initializeApp } = await import(FB + "firebase-app.js"));
+      ({ getAuth, onAuthStateChanged, signOut } = await import(FB + "firebase-auth.js"));
+    } catch (err) {
+      console.error("Gagal memuat Firebase SDK:", err);
+      window.__authFail("Gagal memuat Firebase SDK dari gstatic.com (" + (err && err.message ? err.message : err) + "). Periksa koneksi/pemblokir iklan, lalu coba lagi.");
+      throw err;
+    }
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -3021,17 +3117,15 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    try { getAnalytics(app); } catch (e) { /* analytics tidak tersedia (offline / diblokir) */ }
+    import(FB + "firebase-analytics.js").then((m) => { try { m.getAnalytics(app); } catch (e) {} }).catch(() => {});
     const auth = getAuth(app);
     window.firebaseApp = app;
     window.firebaseAuth = auth;
 
-    // Jika SDK gagal memberi status dalam 8 detik, arahkan ke halaman login
-    const guardTimeout = setTimeout(() => location.replace("login.html"), 8000);
     let syncStarted = false;
 
     onAuthStateChanged(auth, (user) => {
-      clearTimeout(guardTimeout);
+      clearTimeout(window.__splashWatchdog);
       if (!user) { location.replace("login.html"); return; }
       const emailEl = document.getElementById("user-email");
       if (emailEl) {
@@ -3040,6 +3134,8 @@
       }
       document.documentElement.classList.remove("auth-pending");
       if (!syncStarted) { syncStarted = true; startCloudSync(user); }
+    }, (err) => {
+      window.__authFail("Gagal memeriksa status login: " + (err && err.code ? err.code : err));
     });
 
     document.getElementById("logout-btn").addEventListener("click", async () => {
