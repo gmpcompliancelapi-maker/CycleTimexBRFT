@@ -1,35 +1,8 @@
 <!DOCTYPE html>
-<html lang="id" class="auth-pending">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1e3a8a" />
-  <meta name="description" content="Dashboard & workflow document-first untuk memantau cycle time perilisan batch." />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <link rel="icon" href="favicon.ico" sizes="any" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Cycle Time" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta property="og:title" content="Cycle Time Perilisan" />
-  <meta property="og:image" content="icons/og-image.png" />
-  <!-- Sembunyikan halaman sampai status login terverifikasi (mencegah konten sempat terlihat) -->
-  <style>
-    #auth-splash { display: none; position: fixed; inset: 0; z-index: 9999; background: #f1f5f9; align-items: center; justify-content: center; padding: 24px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    html.auth-pending #auth-splash { display: flex; }
-    html.auth-pending body > *:not(#auth-splash):not(script) { display: none !important; }
-    #auth-splash .box { max-width: 380px; width: 100%; text-align: center; color: #0f172a; }
-    #auth-splash img { width: 64px; height: 64px; border-radius: 16px; }
-    #auth-splash .spin { width: 28px; height: 28px; margin: 18px auto 10px; border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%; animation: ctspin .8s linear infinite; }
-    #auth-splash p { margin: 4px 0; font-size: 14px; color: #64748b; line-height: 1.5; }
-    #auth-splash #splash-err { display: none; margin-top: 14px; padding: 12px; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 13px; text-align: left; word-break: break-word; }
-    #auth-splash .btns { display: none; margin-top: 14px; gap: 8px; flex-wrap: wrap; justify-content: center; }
-    #auth-splash button, #auth-splash a { font: 600 13px Inter, sans-serif; padding: 9px 14px; border-radius: 12px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; cursor: pointer; text-decoration: none; }
-    #auth-splash button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
-    @keyframes ctspin { to { transform: rotate(360deg); } }
-  </style>
   <title>Cycle Time Perilisan — Dashboard & Workflow Document-First</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,7 +12,6 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    /* Custom scrollbar for smooth horizontal matrix scrolling */
     .table-scroll::-webkit-scrollbar {
       height: 6px;
       width: 6px;
@@ -59,121 +31,71 @@
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900">
 
-  <!-- Layar pemuatan (tampil sampai status login terverifikasi; tidak pernah putih kosong) -->
-  <div id="auth-splash" role="status" aria-live="polite">
-    <div class="box">
-      <img src="icons/icon-192x192.png" alt="" />
-      <div class="spin" id="splash-spin"></div>
-      <p id="splash-msg">Memuat dan memeriksa login…</p>
-      <div id="splash-err"></div>
-      <div class="btns" id="splash-btns">
-        <button type="button" class="primary" onclick="location.reload()">Muat Ulang</button>
-        <a href="login.html">Ke Halaman Login</a>
-        <button type="button" onclick="__resetAppCache()">Reset Cache &amp; Muat Ulang</button>
-      </div>
-    </div>
-  </div>
-  <script>
-    // Klasik (bukan module) agar tetap jalan walau Firebase gagal dimuat
-    window.__authFail = function (msg) {
-      if (!document.documentElement.classList.contains("auth-pending")) return;
-      var e = document.getElementById("splash-err"), b = document.getElementById("splash-btns");
-      document.getElementById("splash-spin").style.display = "none";
-      document.getElementById("splash-msg").textContent = "Aplikasi belum bisa dibuka.";
-      e.textContent = msg; e.style.display = "block"; b.style.display = "flex";
-    };
-    window.__resetAppCache = function () {
-      var jobs = [];
-      if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
-      if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
-      Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
-    };
-    window.addEventListener("error", function (ev) {
-      window.__authFail("Terjadi galat skrip: " + (ev && ev.message ? ev.message : "tidak diketahui"));
-    });
-    window.__splashWatchdog = setTimeout(function () {
-      window.__authFail("Waktu habis saat memuat Firebase / memeriksa login. Periksa koneksi internet atau coba Reset Cache.");
-    }, 10000);
-  </script>
-
   <!-- Toast Notification Stack -->
   <div id="toast-stack" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none" aria-live="polite"></div>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 1: INCOMING DOCUMENT TRIGGER (DOCUMENT-FIRST ENTRY)               -->
+  <!-- MODAL 1: INCOMING DOCUMENT TRIGGER (SATU ALUR INPUT BERBASIS NO. BETS)  -->
   <!-- ======================================================================= -->
   <div id="incoming-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="incoming-modal-title">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
       <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
         <div>
-          <h3 id="incoming-modal-title" class="text-base font-bold">Catat Dokumen Masuk (Incoming Trigger)</h3>
-          <p class="text-xs text-slate-300 mt-0.5">Catat dokumen yang tiba lebih dulu; dokumen lain tetap berstatus "Belum Masuk"</p>
+          <h3 id="incoming-modal-title" class="text-base font-bold">Catat Dokumen Masuk</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Ketik No. Bets — sistem otomatis mengenali batch yang sudah ada atau membuat baru</p>
         </div>
         <button type="button" onclick="closeIncomingModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
       </div>
 
       <div class="p-5 overflow-y-auto flex flex-col gap-4">
-        <!-- Step 1: Select Batch Mode -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">1. Pilih Batch Perilisan</label>
-          <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-2.5">
-            <button type="button" id="inc-mode-existing" onclick="setIncomingMode('existing')" class="py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition">Batch Aktif</button>
-            <button type="button" id="inc-mode-new" onclick="setIncomingMode('new')" class="py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">+ Batch Baru</button>
+        <!-- Step 1: Satu Kolom No. Bets + Nama Produk -->
+        <div class="flex flex-col gap-2.5">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="inc-bets-input" class="text-xs font-bold text-slate-700 uppercase tracking-wider">1. No. Bets <span class="text-red-600">*</span></label>
+              <span class="text-[11px] text-slate-500">Pola AABBC atau bets khusus</span>
+            </div>
+            <input type="text" id="inc-bets-input" list="inc-active-bets-list" oninput="onUnifiedBetsInput(this.value)" onchange="onUnifiedBetsInput(this.value)" autocomplete="off" autocapitalize="characters" placeholder="Ketik atau pilih No. Bets (misal: 61046)..." class="w-full px-3.5 py-2.5 text-sm font-bold bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600 uppercase" />
+            <datalist id="inc-active-bets-list"></datalist>
           </div>
 
-          <div id="inc-existing-box">
-            <select id="inc-existing-select" onchange="renderIncomingDocChoices()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"></select>
-            <p id="inc-existing-hint" class="mt-1.5 text-xs text-slate-500"></p>
-            <p class="mt-1 text-xs text-blue-700">Batch belum ada di daftar? Klik <b>+ Batch Baru</b> di atas, lalu isi No. Bets.</p>
+          <!-- Status Deteksi Batch / Kode AA -->
+          <div id="inc-status-banner" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
+
+          <!-- Baris Nama Produk yang Rapi (Tidak Berjejal) -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2">
+            <label for="inc-product-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
+            <input type="text" id="inc-product-name" oninput="onUnifiedProductNameInput(this.value)" placeholder="Terisi otomatis dari kode AA, atau ketik / pilih di bawah" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600 disabled:bg-slate-100 disabled:text-slate-600" />
+            <div id="inc-master-picker-row" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+              <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="Filter master produk..." class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500" />
+              <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="w-full px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg focus:outline-none">
+                <option value="">-- Pilih dari Master Produk --</option>
+              </select>
+            </div>
           </div>
 
-          <div id="inc-new-box" class="hidden flex flex-col gap-2.5">
-            <div class="grid grid-cols-1 gap-2">
-              <div class="hidden" style="display:none" aria-hidden="true">
-                <label for="inc-new-id" class="block text-[11px] font-bold text-slate-600 mb-1">ID Perilisan</label>
-                <input type="text" id="inc-new-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-              </div>
-              <div>
-                <label for="inc-new-bets" class="block text-[11px] font-bold text-slate-600 mb-1">No. Bets (Pola AABBC)</label>
-                <input type="text" id="inc-new-bets" oninput="onIncomingBetsOrProductChange('bets')" onkeyup="onIncomingBetsOrProductChange('bets')" onchange="onIncomingBetsOrProductChange('bets')" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046 atau TRIAL-01" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-              </div>
-            </div>
-            <div id="inc-bets-detect-badge" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk</label>
-                <span class="inline-flex items-center gap-1">
-                <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="cari produk…" class="text-[11px] w-24 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
-                <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 focus:outline-none">
-                  <option value="">-- Pilih dari Master Produk --</option>
-                </select>
-                </span>
-              </div>
-              <input type="text" id="inc-new-name" oninput="onIncomingBetsOrProductChange('name')" placeholder="Otomatis terisi jika kode AA cocok, atau ketik/pilih Nama Produk" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-            </div>
-            <label id="inc-apply-default-wrap" class="hidden inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-              <input type="checkbox" id="inc-apply-default-docs" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-              <span id="inc-apply-default-label">Terapkan default dokumen wajib produk</span>
-            </label>
-          </div>
+          <label id="inc-apply-default-wrap" class="hidden inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+            <input type="checkbox" id="inc-apply-default-docs" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+            <span id="inc-apply-default-label">Terapkan default dokumen wajib produk</span>
+          </label>
         </div>
 
-        <!-- Step 2: Select Incoming Document -->
+        <!-- Step 2: Select Incoming Document (3-Color Buttons + Lock + Pencil) -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Dokumen Mana yang Baru Datang? <span class="normal-case font-semibold text-slate-500">(bisa lebih dari satu)</span></label>
-            <span class="text-[11px] font-semibold whitespace-nowrap">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Dokumen yang Baru Datang <span class="normal-case font-semibold text-slate-500">(bisa pilih lebih dari satu)</span></label>
+            <span id="inc-select-all-wrap" class="text-[11px] font-semibold whitespace-nowrap">
               <button type="button" onclick="selectAllIncomingDocs(true)" class="text-blue-700 hover:text-blue-900">Pilih semua</button>
               <span class="text-slate-300 mx-1">|</span>
               <button type="button" onclick="selectAllIncomingDocs(false)" class="text-slate-500 hover:text-slate-800">Hapus</button>
             </span>
           </div>
           <div id="inc-doc-choices" class="grid grid-cols-5 gap-2"></div>
-          <p id="inc-doc-caption" class="mt-1.5 text-xs font-semibold text-blue-700"></p>
+          <p id="inc-doc-caption" class="mt-2 text-xs font-semibold text-blue-700"></p>
         </div>
 
         <!-- Step 3: Receive Date -->
-        <div>
+        <div id="inc-date-section">
           <div class="flex items-center justify-between mb-1.5">
             <label for="inc-receive-date" class="text-xs font-bold text-slate-700 uppercase tracking-wider">3. Tanggal Terima Dokumen</label>
             <button type="button" onclick="setInputActiveDate('inc-receive-date')" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Gunakan Tanggal Berjalan</button>
@@ -182,15 +104,18 @@
         </div>
 
         <!-- Optional Note -->
-        <div>
+        <div id="inc-note-section">
           <label for="inc-note" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Kedatangan (Opsional)</label>
           <input type="text" id="inc-note" placeholder="Contoh: Laporan hasil uji QC masuk dari lab..." class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
         </div>
       </div>
 
-      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2">
-        <button type="button" onclick="closeIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
-        <button type="button" onclick="submitIncomingDocument()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">Simpan & Trigger Dokumen</button>
+      <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-between gap-2">
+        <button type="button" id="inc-open-detail-btn" onclick="openMatchedBatchDetail()" class="hidden px-3 py-2 rounded-xl text-xs font-semibold bg-slate-200/80 text-slate-700 hover:bg-slate-300 transition">Buka Detail Batch</button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button type="button" onclick="closeIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
+          <button type="button" id="inc-submit-btn" onclick="submitIncomingDocument()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed shadow-xs transition">Simpan Dokumen Masuk</button>
+        </div>
       </div>
     </div>
   </div>
@@ -253,19 +178,17 @@
             <label for="bm-batch-no" class="block text-xs font-bold text-slate-700 mb-1">No. Bets (AABBC)</label>
             <input type="text" id="bm-batch-no" oninput="onBatchModalBetsInput(this.value)" onkeyup="onBatchModalBetsInput(this.value)" onchange="onBatchModalBetsInput(this.value)" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label for="bm-batch-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
-              <span class="inline-flex items-center gap-1">
-              <input type="search" id="bm-preset-search" oninput="filterProductPreset('bm-product-preset', this.value)" placeholder="cari…" class="text-[11px] w-20 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
-              <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-1.5 py-0.5 focus:outline-none">
-                <option value="">Master</option>
-              </select>
-              </span>
-            </div>
+          <div class="flex flex-col gap-1.5">
+            <label for="bm-batch-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
             <input type="text" id="bm-batch-name" oninput="onBatchModalNameInput(this.value)" placeholder="Contoh: Paracetamol 500mg Tablet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+            <div class="grid grid-cols-2 gap-1.5">
+              <input type="search" id="bm-preset-search" oninput="filterProductPreset('bm-product-preset', this.value)" placeholder="Filter master…" class="w-full text-[11px] px-2 py-1 border border-slate-300 rounded-lg bg-white focus:outline-none" />
+              <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="w-full text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1 focus:outline-none">
+                <option value="">-- Master Produk --</option>
+              </select>
+            </div>
           </div>
-          <div id="bm-bets-detect-badge" class="sm:col-span-3 hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
+          <div id="bm-bets-detect-badge" class="sm:col-span-2 hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
         </div>
 
         <!-- 5 Documents Cards -->
@@ -298,10 +221,7 @@
       </div>
 
       <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
-          <button type="button" id="bm-delete-btn" onclick="deleteBatchFromModal()" class="hidden px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 transition">Hapus Batch</button>
-        </div>
+        <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" id="bm-save-progress-btn" onclick="saveBatchProgress()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Progres Batch</button>
           <button type="button" id="bm-save-dpj-btn" onclick="executeSaveDpj()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Save DPJ & Selesaikan Batch</button>
@@ -311,7 +231,7 @@
   </div>
 
   <!-- ======================================================================= -->
-  <!-- MODAL 4: MASTER PRODUK DATABASE (AABBC + NON-AABBC)                   -->
+  <!-- MODAL 4: MASTER PRODUK DATABASE (AABBC + NON-AABBC)                     -->
   <!-- ======================================================================= -->
   <div id="master-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="master-modal-title">
     <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
@@ -325,20 +245,16 @@
 
       <div class="p-5 overflow-y-auto flex flex-col gap-5">
         <!-- Add / Edit Product Form -->
-        <form id="master-product-form" onsubmit="saveMasterProduct(event)" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shrink-0">
+        <form id="master-product-form" onsubmit="saveMasterProduct(event)" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <h4 id="mp-form-title" class="text-xs font-extrabold uppercase tracking-wider text-slate-800">Tambah Produk ke Master</h4>
             <button type="button" onclick="resetMasterProductForm()" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Bersihkan Form</button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label for="mp-code-aa" class="block text-xs font-bold text-slate-700 mb-1">Kode Produk AA (Opsional, 2 Karakter)</label>
-              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 / AB" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-            </div>
-            <div>
-              <label for="mp-other-code" class="block text-xs font-bold text-slate-700 mb-1">Kode Lain (Opsional)</label>
-              <input type="text" id="mp-other-code" placeholder="Kode bukan 2 karakter" title="Hanya sebagai referensi; tidak dipakai untuk deteksi No. Bets" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 atau AB (kosongkan jika non-AABBC)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
             <div class="sm:col-span-2">
               <label for="mp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
@@ -356,36 +272,75 @@
           </div>
         </form>
 
-        <!-- Impor Massal -->
-        <details id="imp-details" class="border border-slate-200 rounded-2xl bg-white shrink-0">
-          <summary class="cursor-pointer px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-slate-800">Impor Massal dari Excel / CSV</summary>
-          <div class="px-4 pb-4 flex flex-col gap-3">
-            <p class="text-xs text-slate-500 leading-relaxed">Di Excel, blok kolom <b>Kode Product</b> dan <b>Nama Produk</b> (sertakan baris judul), lalu <b>Copy</b> dan <b>Paste</b> di kotak bawah. Atau unggah file .xlsx / .csv. Kode <b>2 karakter</b> menjadi Kode AA (dipakai deteksi No. Bets); kode dengan panjang lain disimpan sebagai <b>Kode Lain</b> dan tidak dipakai untuk No. Bets. Produk baru memakai centang <i>Default Dokumen Wajib</i> pada form di atas.</p>
-            <textarea id="imp-text" rows="5" oninput="importTextEdited()" placeholder="Kode Product&#9;Nama Produk&#10;I8&#9;A-B VASK 10 TABLET&#10;I7&#9;A-B VASK 5 TABLET" class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"></textarea>
+        <!-- Bulk Import Section -->
+        <details id="mp-import-details" class="border border-slate-200 rounded-2xl bg-white overflow-hidden">
+          <summary class="px-4 py-3 bg-indigo-50/70 hover:bg-indigo-50 cursor-pointer flex items-center justify-between text-xs font-bold text-indigo-900 select-none">
+            <span>Impor Massal Master Produk (Tempel dari Excel / CSV / TXT)</span>
+            <span class="text-[11px] font-semibold text-indigo-600">Klik untuk buka/tutup</span>
+          </summary>
+          <div class="p-4 flex flex-col gap-3 border-t border-slate-200">
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Tempel (<em>paste</em>) langsung dari Excel atau unggah file CSV/TSV. Format per baris:
+              <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-800">Kode AA [Tab/Koma/Titik Koma] Nama Produk [Opsional: Default Dokumen]</code>.
+              Jika tidak memiliki Kode AA (non-AABBC), biarkan kolom pertama kosong atau isi <code class="px-1 rounded bg-slate-100">-</code>.
+            </p>
+
             <div class="flex flex-wrap items-center gap-2">
-              <input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="importFileChosen(this)" class="text-xs" />
-              <label class="text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">Jika kode sudah ada:
-                <select id="imp-conflict" onchange="importConflictChanged()" class="text-xs border border-slate-300 rounded-lg px-2 py-1 bg-white">
-                  <option value="skip">Lewati</option>
-                  <option value="update">Perbarui nama</option>
-                </select>
+              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 cursor-pointer transition">
+                <span>Pilih File CSV / TXT</span>
+                <input type="file" id="mp-import-file" accept=".csv,.tsv,.txt" onchange="importFileChosen(event)" class="hidden" />
               </label>
-              <button type="button" onclick="importPreview()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white hover:bg-slate-900 transition">Baca &amp; Pratinjau</button>
+              <button type="button" onclick="importLoadSample()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Isi Contoh Format</button>
+              <button type="button" onclick="importClearAll()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 transition">Bersihkan</button>
+
+              <div class="ml-auto flex items-center gap-2">
+                <label for="mp-import-conflict" class="text-xs font-semibold text-slate-600">Jika Kode AA / Nama sudah ada:</label>
+                <select id="mp-import-conflict" onchange="importConflictChanged()" class="px-2.5 py-1.5 text-xs font-semibold bg-white border border-slate-300 rounded-xl">
+                  <option value="update">Perbarui (Timpa)</option>
+                  <option value="skip">Lewati (Skip)</option>
+                </select>
+              </div>
             </div>
-            <div id="imp-preview" class="hidden space-y-2"></div>
+
+            <textarea id="mp-import-text" rows="5" oninput="importTextEdited()" placeholder="Contoh tempel dari Excel:&#10;65&#9;Ibuprofen 400mg Tablet&#9;PP,KP,KS,QC&#10;66&#9;Cefadroxil 500mg Kapsul&#10;-&#9;Produk Ekspor Khusus Batch Bebas" class="w-full px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-600"></textarea>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <button type="button" onclick="importPreview()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition">Pratinjau Data</button>
+              <div id="mp-import-summary" class="text-xs font-semibold text-slate-600"></div>
+            </div>
+
+            <div id="mp-import-preview-wrap" class="hidden border border-slate-200 rounded-xl overflow-hidden">
+              <div class="max-h-52 overflow-y-auto table-scroll">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-100 text-slate-600 text-[11px] font-bold uppercase border-b border-slate-200">
+                      <th class="py-2 px-3">Baris</th>
+                      <th class="py-2 px-3">Kode AA</th>
+                      <th class="py-2 px-3">Nama Produk</th>
+                      <th class="py-2 px-3">Default Dokumen</th>
+                      <th class="py-2 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mp-import-preview-tbody" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+              <div class="bg-slate-50 px-3 py-2.5 border-t border-slate-200 flex justify-end">
+                <button type="button" id="mp-import-commit-btn" onclick="importCommit()" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Impor Data Valid</button>
+              </div>
+            </div>
           </div>
         </details>
 
         <!-- Product List Table -->
-        <div class="border border-slate-200 rounded-2xl overflow-hidden shrink-0">
+        <div class="border border-slate-200 rounded-2xl overflow-hidden">
           <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
             <span class="text-xs font-bold text-slate-700">Daftar Master Produk (<span id="mp-count-label">0</span>)</span>
-            <input type="search" id="mp-search" oninput="renderMasterProductTable()" placeholder="Cari kode atau nama produk…" class="text-xs px-3 py-1.5 w-56 max-w-full bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/25" />
+            <input type="search" id="mp-table-search" oninput="renderMasterProductTable()" placeholder="Cari kode AA atau nama produk..." class="w-full sm:w-64 px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500" />
           </div>
-          <div class="overflow-auto table-scroll max-h-[55vh]">
+          <div class="overflow-x-auto table-scroll">
             <table class="w-full text-left border-collapse">
-              <thead class="sticky top-0 z-10 bg-slate-50">
-                <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+              <thead>
+                <tr class="bg-slate-50/70 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
                   <th class="py-2.5 px-4">Kode AA</th>
                   <th class="py-2.5 px-4">Nama Produk</th>
                   <th class="py-2.5 px-4">Default Dokumen Wajib</th>
@@ -430,14 +385,20 @@
         </div>
 
         <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Produk (AA)</button>
-        <button type="button" onclick="resetDemoData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset Data Demo</button>
-        <button type="button" onclick="clearAllData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white text-red-700 border border-red-200 hover:bg-red-50 transition" title="Hapus semua data & mulai dari awal">Kosongkan Data</button>
-        <button type="button" onclick="openNewBatchModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 transition">Buat Batch Lengkap</button>
         <button type="button" onclick="openIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">+ Catat Dokumen Masuk</button>
-        <div class="inline-flex items-center gap-2 pl-3 border-l border-slate-200 ml-1">
-          <span id="sync-status" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500" title="Status sinkronisasi"><span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-300"></span><span id="sync-text" class="hidden sm:inline">Menyambung…</span></span>
-          <span id="user-email" class="hidden sm:inline text-xs font-medium text-slate-500 max-w-[160px] truncate" title=""></span>
-          <button type="button" id="logout-btn" class="px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition">Keluar</button>
+
+        <!-- Menu Lainnya (Reset Data Demo & Kosongkan Data) -->
+        <div class="relative" id="more-menu-wrap">
+          <button type="button" id="more-menu-btn" onclick="toggleMoreMenu(event)" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition" aria-haspopup="true" aria-expanded="false" title="Pengaturan data lainnya">⋯ Lainnya</button>
+          <div id="more-menu-dropdown" class="hidden absolute right-0 mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40">
+            <button type="button" onclick="closeMoreMenu(); resetDemoData();" class="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition">
+              <span>Reset Data Demo</span>
+            </button>
+            <div class="my-1 border-t border-slate-100"></div>
+            <button type="button" onclick="closeMoreMenu(); clearAllData();" class="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 flex items-center gap-2 transition">
+              <span>Kosongkan Semua Data</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -632,60 +593,54 @@
             </select>
           </div>
           <div class="flex gap-2">
-            <button type="button" onclick="filterOnlyTodayComplete()" class="flex-1 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition">Lengkap Hari Ini</button>
-            <button type="button" onclick="clearFilters()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset</button>
+            <button type="button" onclick="clearFilters()" class="w-full px-3 py-2 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl transition">Reset Filter</button>
           </div>
         </div>
       </div>
 
       <!-- Matrix Table -->
-      <div class="w-full overflow-x-auto table-scroll">
-        <table id="matrix-table" class="w-full text-left border-collapse">
+      <div class="overflow-x-auto table-scroll">
+        <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
-              <th class="py-3 px-4 whitespace-nowrap">No. Bets & Produk</th>
-              <th class="py-3 px-4 whitespace-nowrap">5 Dokumen (PPI: PP, KP, KS • QC • MC)</th>
-              <th class="py-3 px-4 whitespace-nowrap">Status Batch</th>
-              <th class="py-3 px-4 text-right whitespace-nowrap">Point 1</th>
-              <th class="py-3 px-4 text-right whitespace-nowrap">Point 2</th>
-              <th class="py-3 px-4 text-right whitespace-nowrap">Point 3</th>
-              <th class="py-3 px-4 text-right whitespace-nowrap">Total CT</th>
-              <th class="py-3 px-4 text-center whitespace-nowrap">Aksi</th>
+            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <th class="py-3 px-4">No. Bets &amp; Nama Produk</th>
+              <th class="py-3 px-4">Status 5 Dokumen (PPI • QC • MC)</th>
+              <th class="py-3 px-4">Status Batch</th>
+              <th class="py-3 px-4 text-right">Point 1 (1st)</th>
+              <th class="py-3 px-4 text-right">Point 2 (2nd)</th>
+              <th class="py-3 px-4 text-right">Point 3 (DPJ)</th>
+              <th class="py-3 px-4 text-right">Total CT</th>
+              <th class="py-3 px-4 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="matrix-tbody" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
 
-      <!-- Empty State -->
-      <div id="matrix-empty" class="hidden py-10 px-4 text-center text-sm text-slate-500">
-        Tidak ada batch perilisan yang sesuai dengan kriteria filter saat ini.
+      <div id="matrix-empty" class="hidden p-8 text-center text-xs text-slate-500">
+        Tidak ada batch yang sesuai dengan filter saat ini. Klik <strong>Reset Filter</strong> untuk menampilkan semua data.
       </div>
 
-      <!-- Pagination Footer -->
-      <div id="pagination-bar" class="bg-slate-50 px-4 sm:px-5 py-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-        <div id="pagination-info">Menampilkan 0-0 dari 0 batch</div>
-        <div class="flex items-center gap-1.5">
-          <button type="button" id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition">Sebelumnya</button>
-          <span id="pagination-page-label" class="px-2 font-bold text-slate-900">Hal 1 / 1</span>
-          <button type="button" id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition">Berikutnya</button>
+      <!-- Pagination Bar -->
+      <div id="pagination-bar" class="px-4 sm:px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span id="pagination-info" class="font-medium text-slate-600">Menampilkan 0 batch</span>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition">&larr; Sebelumnya</button>
+          <span id="pagination-page-label" class="font-bold text-slate-700 px-2">Hal 1 / 1</span>
+          <button type="button" id="btn-next-page" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition">Berikutnya &rarr;</button>
         </div>
       </div>
     </section>
-
   </main>
 
   <script>
     (function () {
-      "use strict";
-
       /* =====================================================================
          1. KONFIGURASI DOMAIN & UTILITAS TANGGAL KALENDER
          ===================================================================== */
-      const STORAGE_KEY = "ct_perilisan_v5";
-      const PRODUCT_STORAGE_KEY = "ct_master_produk_v1";
-      let memoryFallback = null;
-      let productMemoryFallback = null;
+      const STORAGE_KEY = "cycle_time_perilisan_proto_v2";
+      const PRODUCTS_STORAGE_KEY = "cycle_time_master_products_v1";
+
       const DOC_LIST = [
         { code: "PP", label: "Perintah Pengemasan (PP)", group: "PPI" },
         { code: "KP", label: "Catatan Pengolahan (KP)", group: "PPI" },
@@ -738,6 +693,18 @@
           return dt.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
         } catch (e) {
           return clean;
+        }
+      }
+
+      function formatShortDayMonth(dateStr) {
+        const clean = normalizeDateStr(dateStr);
+        if (!clean) return "";
+        const parts = clean.split("-");
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        try {
+          return dt.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+        } catch (e) {
+          return clean.slice(5);
         }
       }
 
@@ -798,11 +765,14 @@
         const t2 = shiftDateStr(t0, -2);
         const t3 = shiftDateStr(t0, -3);
         const t4 = shiftDateStr(t0, -4);
+        const yd = t0.slice(3, 4);
 
         // 1. Released beberapa hari lalu (semua 5 dokumen wajib)
         const b1 = {
           id: "REL-2026-001",
-          batchName: "Amoxicillin 500mg Kaplet — Batch A261101",
+          batchNo: `6201${yd}`,
+          productName: "Amoxicillin 500mg Kapsul",
+          batchName: `Amoxicillin 500mg Kapsul — Bets 6201${yd}`,
           dpjTime: t2,
           dpjPic: "Budi Santoso (SPV)",
           docs: createEmptyDocs()
@@ -816,7 +786,9 @@
         // 2. Released kemarin (MC tidak perlu / N/A)
         const b2 = {
           id: "REL-2026-002",
-          batchName: "Paracetamol Sirup 60ml — Batch P261102",
+          batchNo: `6102${yd}`,
+          productName: "Paracetamol 500mg Kaplet",
+          batchName: `Paracetamol 500mg Kaplet — Bets 6102${yd}`,
           dpjTime: t1,
           dpjPic: "Hendra Wijaya (Officer)",
           docs: createEmptyDocs()
@@ -825,12 +797,14 @@
         b2.docs.KP = { required: true, naNote: "", arrivalNote: "", receiveTime: t3, firstCheckTime: t2, firstPic: "Rina", secondCheckTime: t2, secondPic: "Hendra Wijaya" };
         b2.docs.KS = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t2, firstPic: "Andi", secondCheckTime: t1, secondPic: "Hendra Wijaya" };
         b2.docs.QC = { required: true, naNote: "", arrivalNote: "", receiveTime: t2, firstCheckTime: t1, firstPic: "Dedi", secondCheckTime: t1, secondPic: "Hendra Wijaya" };
-        b2.docs.MC = { required: false, naNote: "Sirup oral non-steril tidak mensyaratkan MC rutin", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
+        b2.docs.MC = { required: false, naNote: "Tablet non-steril tidak mensyaratkan MC rutin", arrivalNote: "", receiveTime: "", firstCheckTime: "", firstPic: "", secondCheckTime: "", secondPic: "" };
 
         // 3. Ready for DPJ (semua dokumen wajib sudah 2nd check, siap Save DPJ)
         const b3 = {
           id: "REL-2026-003",
-          batchName: "Vitamin C 1000mg — Batch V261103",
+          batchNo: `6103${yd}`,
+          productName: "Vitamin C 1000mg",
+          batchName: `Vitamin C 1000mg — Bets 6103${yd}`,
           dpjTime: "",
           dpjPic: "",
           docs: createEmptyDocs()
@@ -844,7 +818,9 @@
         // 4. LENGKAP PADA HARI BERJALAN (dokumen terakhir MC diterima hari ini)
         const b4 = {
           id: "REL-2026-004",
-          batchName: "Cetirizine 10mg Tablet — Batch T261104",
+          batchNo: `6304${yd}`,
+          productName: "Cetirizine 10mg Tablet",
+          batchName: `Cetirizine 10mg Tablet — Bets 6304${yd}`,
           dpjTime: "",
           dpjPic: "",
           docs: createEmptyDocs()
@@ -858,7 +834,9 @@
         // 5. LENGKAP PADA HARI BERJALAN & SUDAH VERIFIED (tinggal Save DPJ)
         const b5 = {
           id: "REL-2026-005",
-          batchName: "Amlodipine 5mg Tablet — Batch L261105",
+          batchNo: `6405${yd}`,
+          productName: "Amlodipine 5mg Tablet",
+          batchName: `Amlodipine 5mg Tablet — Bets 6405${yd}`,
           dpjTime: "",
           dpjPic: "",
           docs: createEmptyDocs()
@@ -872,7 +850,9 @@
         // 6. Parsial: baru QC yang masuk hari ini
         const b6 = {
           id: "REL-2026-006",
-          batchName: "Omeprazole 20mg Kapsul — Batch O261106",
+          batchNo: `6206${yd}`,
+          productName: "Omeprazole 20mg Kapsul",
+          batchName: `Omeprazole 20mg Kapsul — Bets 6206${yd}`,
           dpjTime: "",
           dpjPic: "",
           docs: createEmptyDocs()
@@ -891,7 +871,9 @@
         // 7. Parsial: PP & KP sudah masuk, KS/QC/MC belum masuk
         const b7 = {
           id: "REL-2026-007",
-          batchName: "Metformin 500mg Kaplet — Batch M261107",
+          batchNo: `6107${yd}`,
+          productName: "Metformin 500mg Kaplet",
+          batchName: `Metformin 500mg Kaplet — Bets 6107${yd}`,
           dpjTime: "",
           dpjPic: "",
           docs: createEmptyDocs()
@@ -948,35 +930,54 @@
 
       function loadProducts() {
         try {
-          const raw = window.localStorage ? window.localStorage.getItem(PRODUCT_STORAGE_KEY) : null;
-          if (!raw) {
-            masterProducts = getDefaultProducts();
-            saveProducts();
-            return;
+          const raw = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              masterProducts = parsed;
+              return;
+            }
           }
-          const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed)) {
-            masterProducts = getDefaultProducts();
-            saveProducts();
-            return;
-          }
-          masterProducts = parsed;
-        } catch (err) {
-          masterProducts = Array.isArray(productMemoryFallback) && productMemoryFallback.length > 0
-            ? cloneObj(productMemoryFallback)
-            : getDefaultProducts();
+        } catch (e) {
+          // Ignore storage error
         }
+        masterProducts = getDefaultProducts();
+        saveProducts();
       }
 
       function saveProducts() {
-        productMemoryFallback = cloneObj(masterProducts);
         try {
-          if (window.localStorage) {
-            window.localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(masterProducts));
-          }
-        } catch (err) {
-          // Safe fallback in memory
-        }        if (window.__ctSync && window.__ctSync.onProductsSaved) window.__ctSync.onProductsSaved(cloneObj(masterProducts));
+          localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(masterProducts));
+        } catch (e) {
+          // Ignore quota error
+        }
+      }
+
+      function normalizeBets(val) {
+        return String(val || "").replace(/[^A-Za-z0-9\-_/]/g, "").toUpperCase();
+      }
+
+      function forceUpperInput(el) {
+        if (!el) return;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const clean = normalizeBets(el.value);
+        if (el.value !== clean) {
+          el.value = clean;
+          try {
+            if (typeof start === "number") el.setSelectionRange(start, end);
+          } catch (e) {}
+        }
+      }
+
+      function currentYearInfo() {
+        const dtStr = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        const fullYear = Number(dtStr.slice(0, 4)) || 2026;
+        return {
+          fullYear,
+          digit: String(fullYear).slice(-1),
+          decadeBase: Math.floor(fullYear / 10) * 10
+        };
       }
 
       function findProductByCodeAA(aaCode) {
@@ -985,22 +986,16 @@
         return masterProducts.find(p => String(p.codeAA || "").trim().toUpperCase() === cleanAA) || null;
       }
 
-      // Evaluates No. Bets dengan pola AABBC (5 karakter: AA = kode produk, BB = nomor urut batch, C = angka terakhir tahun berjalan)
-      function currentYearInfo() {
-        const d = String(normalizeDateStr(activeDateStr) || getSystemTodayStr());
-        const year = d.slice(0, 4);
-        return { year, digit: year.slice(-1), decade: year.slice(0, 3) };
-      }
-
+      // Evaluates No. Bets with pattern AABBC (5 chars: AA=code, BB=batch seq, C=year last digit)
       function detectBetsPattern(rawBets) {
-        const trimmed = String(rawBets || "").trim();
+        const trimmed = normalizeBets(rawBets);
         if (!trimmed) {
           return {
             state: "EMPTY",
-            isPattern6: false,
+            isPattern5: false,
             aa: "",
             bb: "",
-            cc: "",
+            c: "",
             yearFull: "",
             matchedProduct: null,
             badgeText: "",
@@ -1008,117 +1003,123 @@
           };
         }
 
-        // Abaikan spasi / tanda hubung / garis miring / titik saat mencocokkan pola (61-04-6 = 61046)
-        const compact = trimmed.replace(/[\s\-_/.]/g, "");
-
-        // Masih mengetik (1-5 karakter): beri umpan balik langsung
-        if (/^[A-Za-z0-9]{1,4}$/.test(compact)) {
-          const partialAA = compact.length >= 2 ? compact.slice(0, 2).toUpperCase() : "";
-          const hit = partialAA ? findProductByCodeAA(partialAA) : null;
-          return {
-            state: "PARTIAL",
-            isPattern6: false,
-            aa: "",
-            bb: "",
-            cc: "",
-            yearFull: "",
-            matchedProduct: null,
-            badgeText: hit
-              ? `Kode ${partialAA} dikenali (${hit.name}) — lengkapi hingga 5 karakter (${compact.length}/5).`
-              : `Ketik 5 karakter AABBC (${compact.length}/5): AA = kode produk, BB = urutan batch, C = angka tahun.`,
-            badgeClass: "bg-amber-50 text-amber-800 border-amber-200"
-          };
-        }
-
-        // Match 6 alphanumeric characters: AA (2), BB (2), CC (2)
-        const match6 = compact.match(/^([A-Za-z0-9]{2})([A-Za-z0-9]{2})([0-9])$/);
-        if (match6) {
-          const aa = match6[1].toUpperCase();
-          const bb = match6[2].toUpperCase();
-          const cc = match6[3].toUpperCase();
-          const yi = currentYearInfo();
-          const yearFull = `${yi.decade}${cc}`;
-          const yearNote = cc !== yi.digit ? ` ⚠ angka tahun ${cc} berbeda dengan tahun berjalan (${yi.digit})` : "";
+        const yrInfo = currentYearInfo();
+        const match5 = trimmed.match(/^([A-Z0-9]{2})([A-Z0-9]{2})([A-Z0-9])$/);
+        if (match5) {
+          const aa = match5[1];
+          const bb = match5[2];
+          const c = match5[3];
+          const yearFull = /^\d$/.test(c) ? String(yrInfo.decadeBase + Number(c)) : c;
           const matched = findProductByCodeAA(aa);
 
           if (matched) {
             return {
               state: "MATCHED",
-              isPattern6: true,
+              isPattern5: true,
               aa,
               bb,
-              cc,
+              c,
               yearFull,
               matchedProduct: matched,
-              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (Bets #${bb}, Thn ${yearFull})${yearNote}`,
+              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (Bets #${bb}, Thn ${yearFull})`,
               badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200"
             };
           }
 
           return {
             state: "UNMATCHED_AA",
-            isPattern6: true,
+            isPattern5: true,
             aa,
             bb,
-            cc,
+            c,
             yearFull,
             matchedProduct: null,
-            badgeText: `Pola AABBC terdeteksi (AA: ${aa}, Bets #${bb}, Thn ${yearFull})${yearNote} — kode ${aa} belum ada di Master Produk. Pilih atau ketik Nama Produk secara manual.`,
+            badgeText: `Pola AABBC terdeteksi (AA: ${aa}, Bets #${bb}, Thn ${yearFull}) — kode ${aa} belum ada di Master Produk. Pilih atau ketik Nama Produk secara manual.`,
+            badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
+          };
+        }
+
+        const matchPrefix = trimmed.match(/^([A-Z0-9]{2})([A-Z0-9]{0,2})$/);
+        if (matchPrefix && trimmed.length >= 2 && trimmed.length < 5) {
+          const aa = matchPrefix[1];
+          const matched = findProductByCodeAA(aa);
+          const rem = 5 - trimmed.length;
+          if (matched) {
+            return {
+              state: "MATCHED",
+              isPattern5: false,
+              aa,
+              bb: matchPrefix[2] || "",
+              c: "",
+              yearFull: String(yrInfo.fullYear),
+              matchedProduct: matched,
+              badgeText: `Kode ${aa} terdeteksi → ${matched.name} (lengkapi ${rem} karakter lagi untuk pola AABBC, misal ${aa}01${yrInfo.digit})`,
+              badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200"
+            };
+          }
+          return {
+            state: "UNMATCHED_AA",
+            isPattern5: false,
+            aa,
+            bb: matchPrefix[2] || "",
+            c: "",
+            yearFull: "",
+            matchedProduct: null,
+            badgeText: `Awalan kode "${aa}" (${trimmed.length}/5 karakter AABBC) belum terdaftar di Master Produk — lanjut ketik atau isi Nama Produk manual.`,
             badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
           };
         }
 
         return {
           state: "NON_AABBC",
-          isPattern6: false,
+          isPattern5: false,
           aa: "",
           bb: "",
-          cc: "",
+          c: "",
           yearFull: "",
           matchedProduct: null,
-          badgeText: "Bukan pola 5 karakter AABBC (mis. 61046; C = angka tahun), jadi nama produk tidak terisi otomatis. Tetap bisa lanjut: pilih dari daftar atau ketik Nama Produk.",
+          badgeText: "Format non-AABBC (bets khusus/trial) — tetap bisa lanjut; pilih dari daftar atau ketik Nama Produk bebas.",
           badgeClass: "bg-slate-100 text-slate-700 border-slate-200"
         };
       }
 
-      function productTag(p) {
-        if (p.codeAA) return `[${escapeHtml(String(p.codeAA).toUpperCase())}] `;
-        if (p.otherCode) return `[${escapeHtml(String(p.otherCode).toUpperCase())}] `;
-        return "[Non-AA] ";
-      }
-      function productMatchesQuery(p, q) {
-        if (!q) return true;
-        const hay = `${p.codeAA || ""} ${p.otherCode || ""} ${p.name || ""}`.toLowerCase();
-        return q.toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.includes(t));
-      }
-      function populateProductPresetSelect(selectEl, includePlaceholder, query) {
+      function populateProductPresetSelect(selectEl, includePlaceholder, searchFilter) {
         if (!selectEl) return;
-        const q = String(query || "").trim();
-        if (query === undefined) {
-          const searchEl = document.getElementById(selectEl.id.replace("product-preset", "preset-search"));
-          if (searchEl) searchEl.value = "";
-        }
-        const list = masterProducts.filter(p => productMatchesQuery(p, q));
-        const baseLabel = includePlaceholder ? "-- Pilih dari Master Produk --" : "Master";
-        const firstOpt = `<option value="">${q ? `${list.length} produk cocok` : baseLabel}</option>`;
-        const opts = list.slice(0, 300).map(p =>
-          `<option value="${escapeHtml(p.id)}">${productTag(p)}${escapeHtml(p.name)}</option>`
-        ).join("");
+        const q = String(searchFilter || "").trim().toUpperCase();
+        const currentVal = selectEl.value;
+        const filtered = masterProducts.filter(p => {
+          if (!q) return true;
+          const code = String(p.codeAA || "").toUpperCase();
+          const name = String(p.name || "").toUpperCase();
+          return code.includes(q) || name.includes(q);
+        });
+        const firstOpt = includePlaceholder
+          ? `<option value="">-- Pilih Master Produk (${filtered.length}) --</option>`
+          : `<option value="">Master (${filtered.length})</option>`;
+        const opts = filtered.map(p => {
+          const aaTag = p.codeAA ? `[${escapeHtml(String(p.codeAA).toUpperCase())}] ` : "[Non-AA] ";
+          return `<option value="${escapeHtml(p.id)}">${aaTag}${escapeHtml(p.name)}</option>`;
+        }).join("");
         selectEl.innerHTML = firstOpt + opts;
+        if (currentVal && filtered.some(p => p.id === currentVal)) {
+          selectEl.value = currentVal;
+        }
       }
+
       function filterProductPreset(selectId, query) {
         const sel = document.getElementById(selectId);
-        populateProductPresetSelect(sel, selectId.startsWith("inc"), query);
+        if (!sel) return;
+        populateProductPresetSelect(sel, selectId === "inc-product-preset", query);
       }
 
       /* =====================================================================
-         3. STATE & PERSISTENCE (SAFE LOCALSTORAGE)
+         3. STATE & PERSISTENCE (LOCALSTORAGE + IN-MEMORY)
          ===================================================================== */
       let batches = [];
       let editingOriginalId = null;
       let formDraft = null;
       let draftUnlocked = false;
-      let incomingMode = "existing";
+      let incomingMatchedBatchId = null;
       let incomingSelectedDocs = new Set(["QC"]);   // boleh lebih dari satu dokumen
       let feedVisible = true;
       let feedExpanded = false;
@@ -1126,70 +1127,33 @@
       let currentPage = 1;
       let pageSize = 5;
 
-      function cloneObj(obj) {
-        return JSON.parse(JSON.stringify(obj));
-      }
-
-      /* ---------- Penyeragaman No. Bets: selalu HURUF KAPITAL ---------- */
-      function normalizeBets(v) {
-        return String(v == null ? "" : v).trim().toUpperCase();
-      }
-      function forceUpperInput(el) {
-        if (!el) return;
-        const v = el.value, u = v.toUpperCase();
-        if (v !== u) {
-          const st = el.selectionStart, en = el.selectionEnd;
-          el.value = u;
-          try { el.setSelectionRange(st, en); } catch (e) {}
-        }
-      }
-      // Mengembalikan true bila ada data yang diubah
-      function normalizeAllBatches(arr) {
-        let changed = false;
-        (arr || []).forEach(b => {
-          if (!b) return;
-          if (b.batchNo && b.batchNo !== normalizeBets(b.batchNo)) { b.batchNo = normalizeBets(b.batchNo); changed = true; }
-          if (typeof b.batchName === "string") {
-            const nn = b.batchName.replace(/( — Bets )(.+)$/, (m, a, c) => a + c.trim().toUpperCase());
-            if (nn !== b.batchName) { b.batchName = nn; changed = true; }
-          }
-        });
-        return changed;
-      }
-
       function loadBatches() {
         try {
-          const raw = window.localStorage ? window.localStorage.getItem(STORAGE_KEY) : null;
-          if (!raw) {
-            batches = getDefaultBatches(activeDateStr);
-            saveBatches();
-            return;
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              batches = parsed;
+              return;
+            }
           }
-          const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed)) {
-            batches = getDefaultBatches(activeDateStr);
-            saveBatches();
-            return;
-          }
-          batches = parsed;
-          if (normalizeAllBatches(batches)) saveBatches();
-        } catch (err) {
-          batches = Array.isArray(memoryFallback) && memoryFallback.length > 0
-            ? cloneObj(memoryFallback)
-            : getDefaultBatches(activeDateStr);
+        } catch (e) {
+          // Fallback to defaults if storage unavailable
         }
+        batches = getDefaultBatches(activeDateStr);
+        saveBatches();
       }
 
       function saveBatches() {
-        memoryFallback = cloneObj(batches);
         try {
-          if (window.localStorage) {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
-          }
-        } catch (err) {
-          // Safe fallback in memory if storage quota/iframe blocks localStorage
-        }        // Sinkronisasi cloud (Firestore) — hanya aktif setelah login & snapshot pertama
-        if (window.__ctSync && window.__ctSync.onBatchesSaved) window.__ctSync.onBatchesSaved(cloneObj(batches));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
+        } catch (e) {
+          // Ignore quota errors in restricted sandboxes
+        }
+      }
+
+      function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
       }
 
       /* =====================================================================
@@ -1303,9 +1267,6 @@
           if (dtot !== null && dtot >= 0) totalCT = dtot;
         }
 
-        // Definisi khusus: Dokumen lengkap pada hari berjalan ketika SEMUA dokumen wajib
-        // sudah diterima (allReceived) DAN tanggal terima dokumen terakhir (maxReceiveTime)
-        // sama dengan activeDateStr.
         const targetDay = normalizeDateStr(activeDateStr) || getSystemTodayStr();
         const isTodayComplete = allReceived && maxReceiveTime === targetDay;
         const completingDocsToday = isTodayComplete
@@ -1371,12 +1332,13 @@
             .map(d => d.code);
 
           const nextDoc = pendingCodes[0] || null;
+          const lbl = batchLabel(batch);
 
           return `
             <div class="bg-white/10 border border-white/15 rounded-xl p-3.5 flex flex-col justify-between gap-2.5">
               <div>
                 <div class="flex items-center justify-between gap-2">
-                  <strong class="text-xs font-bold tracking-wide">${escapeHtml(batchLabel(batch))}</strong>
+                  <strong class="text-xs font-bold tracking-wide">Bets ${escapeHtml(lbl)}</strong>
                   <span class="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-bold">
                     Masuk: ${arrivedCodes.join(", ")} (${ev.arrivedCount}/${ev.requiredCount})
                   </span>
@@ -1464,7 +1426,7 @@
             <div class="bg-white border border-emerald-200 rounded-xl p-3.5 shadow-2xs flex flex-col justify-between gap-2.5">
               <div>
                 <div class="flex items-center justify-between gap-2">
-                  <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
+                  <strong class="text-sm font-extrabold text-slate-900">Bets ${escapeHtml(batchLabel(batch))}</strong>
                   ${statusBadge}
                 </div>
                 <div class="text-xs font-semibold text-slate-700 mt-1 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
@@ -1517,7 +1479,6 @@
         const wrap = document.getElementById("svg-chart-wrap");
         if (!wrap) return;
 
-        // Calculate average Point 1, Point 2, and batch Point 3 across PP, KP, KS, PPI avg, QC, MC
         const categories = [
           { key: "PP", label: "PP (PPI)" },
           { key: "KP", label: "KP (PPI)" },
@@ -1569,7 +1530,6 @@
 
         let svgContent = "";
 
-        // Horizontal gridlines
         for (let g = 0; g <= 4; g++) {
           const ratio = g / 4;
           const y = padTop + plotH - ratio * plotH;
@@ -1578,7 +1538,6 @@
           svgContent += `<text x="${padLeft - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#64748b">${tick}h</text>`;
         }
 
-        // Stacked bars
         stats.forEach((s, idx) => {
           const centerX = padLeft + idx * colW + colW / 2;
           const barW = Math.min(34, colW * 0.48);
@@ -1641,7 +1600,7 @@
         ];
 
         wrap.innerHTML = rows.map(r => {
-          const pct = Math.round((r.count / total) * 100);
+          const pct = batches.length ? Math.round((r.count / total) * 100) : 0;
           return `
             <div>
               <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
@@ -1721,6 +1680,8 @@
 
         tbody.innerHTML = pageSlice.map(batch => {
           const ev = evaluateBatch(batch);
+          const lbl = batchLabel(batch);
+          const pTitle = batch.productName || String(batch.batchName || "").split(" — Bets ")[0] || batch.batchName;
 
           const ppiPills = ["PP", "KP", "KS"].map(code => {
             const def = DOC_LIST.find(x => x.code === code);
@@ -1750,8 +1711,8 @@
           return `
             <tr class="hover:bg-slate-50/90 transition">
               <td class="${cellPad} align-middle">
-                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batchLabel(batch))}${todayChip}</div>
-                <div class="text-xs text-slate-600 max-w-xs truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
+                <div class="font-extrabold text-slate-900 whitespace-nowrap">Bets ${escapeHtml(lbl)}${todayChip}</div>
+                <div class="text-xs text-slate-600 max-w-xs truncate" title="${escapeHtml(pTitle)}">${escapeHtml(pTitle)}</div>
                 ${detailSub}
               </td>
               <td class="${cellPad} align-middle">
@@ -1773,7 +1734,6 @@
                 <button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold ${ev.statusLabel === "Ready for DPJ" ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-slate-100 text-slate-800 hover:bg-slate-200"} transition">
                   ${ev.statusLabel === "Ready for DPJ" ? "Save DPJ" : "Detail"}
                 </button>
-                <button type="button" onclick="deleteBatch('${escapeHtml(batch.id)}')" class="ml-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition" title="Hapus batch ini" aria-label="Hapus batch ${escapeHtml(batchLabel(batch))}">Hapus</button>
               </td>
             </tr>
           `;
@@ -1795,7 +1755,11 @@
 
         return batches.filter(b => {
           const ev = evaluateBatch(b);
-          const matchText = !q || b.id.toLowerCase().includes(q) || String(b.batchNo || "").toLowerCase().includes(q) || b.batchName.toLowerCase().includes(q);
+          const matchText = !q ||
+            String(b.id || "").toLowerCase().includes(q) ||
+            String(b.batchNo || "").toLowerCase().includes(q) ||
+            String(b.productName || "").toLowerCase().includes(q) ||
+            String(b.batchName || "").toLowerCase().includes(q);
 
           let matchStatus = true;
           if (stFilter === "TODAY_COMPLETE") {
@@ -1898,214 +1862,338 @@
       }
 
       /* =====================================================================
-         10. MODAL 1: INCOMING DOCUMENT TRIGGER LOGIC
+         10. MODAL 1: INCOMING DOCUMENT TRIGGER LOGIC (SATU ALUR NO. BETS)
          ===================================================================== */
-      // ID internal otomatis & unik (tidak ditampilkan ke pengguna; aman untuk banyak perangkat)
       function generateNextBatchId() {
         const rnd = Math.random().toString(36).slice(2, 5).toUpperCase();
         return `B${Date.now().toString(36).toUpperCase()}${rnd}`;
       }
 
-      // Label yang ditampilkan: No. Bets (atau ID internal bila batch lama tidak punya bets)
       function batchLabel(b) {
         return String((b && (b.batchNo || b.id)) || "").trim();
       }
 
-      function openIncomingModal(preselectedBatchId, preselectedDocCode) {
-        const activeBatches = batches.filter(b => evaluateBatch(b).statusLabel !== "Released");
-        const selectEl = document.getElementById("inc-existing-select");
+      function findBatchByBets(rawBets) {
+        const clean = normalizeBets(rawBets);
+        if (!clean) return null;
+        return batches.find(b =>
+          normalizeBets(b.batchNo) === clean ||
+          normalizeBets(b.id) === clean
+        ) || null;
+      }
 
-        selectEl.innerHTML = activeBatches.map(b => {
+      function populateIncomingBetsDatalist() {
+        const dl = document.getElementById("inc-active-bets-list");
+        if (!dl) return;
+        dl.innerHTML = batches.map(b => {
           const ev = evaluateBatch(b);
-          return `<option value="${escapeHtml(b.id)}">${escapeHtml(b.batchName)} (${ev.arrivedCount}/${ev.requiredCount} masuk)</option>`;
+          const lbl = batchLabel(b);
+          return `<option value="${escapeHtml(lbl)}">${escapeHtml(b.batchName)} (${ev.arrivedCount}/${ev.requiredCount} masuk)</option>`;
         }).join("");
+      }
+
+      function openIncomingModal(preselectedBatchId, preselectedDocCode) {
+        populateIncomingBetsDatalist();
+        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
+
+        const betsInput = document.getElementById("inc-bets-input");
+        const nameInput = document.getElementById("inc-product-name");
+
+        incomingMatchedBatchId = null;
+        lastAutoDetectedName = "";
+        lastAutoDetectedCodeAA = "";
+        betsInput.value = "";
+        nameInput.value = "";
+        nameInput.disabled = false;
 
         if (preselectedDocCode) {
           incomingSelectedDocs = new Set([preselectedDocCode]);
-        }
-
-        if (preselectedBatchId && activeBatches.some(b => b.id === preselectedBatchId)) {
-          setIncomingMode("existing");
-          selectEl.value = preselectedBatchId;
-        } else if (activeBatches.length > 0) {
-          setIncomingMode("existing");
         } else {
-          setIncomingMode("new");
+          incomingSelectedDocs = new Set();
         }
 
-        document.getElementById("inc-new-id").value = generateNextBatchId();
-        document.getElementById("inc-new-name").value = "";
-        document.getElementById("inc-new-bets").value = "";
-        lastAutoDetectedName = "";
-        lastAutoDetectedCodeAA = "";
-        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
-        updateIncomingBetsUi(false);
+        if (preselectedBatchId) {
+          const target = batches.find(b => b.id === preselectedBatchId);
+          if (target) {
+            betsInput.value = batchLabel(target);
+          }
+        }
 
         document.getElementById("inc-receive-date").value = normalizeDateStr(activeDateStr) || getSystemTodayStr();
         document.getElementById("inc-note").value = "";
 
-        renderIncomingDocChoices();
+        onUnifiedBetsInput(betsInput.value, preselectedDocCode || null);
         document.getElementById("incoming-modal").classList.remove("hidden");
       }
 
       function closeIncomingModal() {
         document.getElementById("incoming-modal").classList.add("hidden");
+        incomingMatchedBatchId = null;
       }
 
-      function setIncomingMode(mode) {
-        incomingMode = mode;
-        const btnExist = document.getElementById("inc-mode-existing");
-        const btnNew = document.getElementById("inc-mode-new");
-        const boxExist = document.getElementById("inc-existing-box");
-        const boxNew = document.getElementById("inc-new-box");
+      function openMatchedBatchDetail() {
+        const targetId = incomingMatchedBatchId;
+        if (!targetId) return;
+        closeIncomingModal();
+        openBatchModal(targetId);
+      }
 
-        if (mode === "existing") {
-          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
-          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
-          boxExist.classList.remove("hidden");
-          boxNew.classList.add("hidden");
+      function onUnifiedBetsInput(rawVal, preferredDocCode) {
+        const betsInput = document.getElementById("inc-bets-input");
+        forceUpperInput(betsInput);
+        const cleanBets = normalizeBets(betsInput.value);
+
+        const bannerEl = document.getElementById("inc-status-banner");
+        const nameInput = document.getElementById("inc-product-name");
+        const pickerRow = document.getElementById("inc-master-picker-row");
+        const defWrap = document.getElementById("inc-apply-default-wrap");
+        const defLabel = document.getElementById("inc-apply-default-label");
+        const presetSel = document.getElementById("inc-product-preset");
+        const detailBtn = document.getElementById("inc-open-detail-btn");
+
+        const matchedBatch = findBatchByBets(cleanBets);
+
+        if (matchedBatch) {
+          incomingMatchedBatchId = matchedBatch.id;
+          const ev = evaluateBatch(matchedBatch);
+          const pName = matchedBatch.productName || String(matchedBatch.batchName || "").split(" — Bets ")[0] || matchedBatch.batchName;
+
+          nameInput.value = pName;
+          nameInput.disabled = true;
+          if (pickerRow) pickerRow.classList.add("hidden");
+          if (defWrap) defWrap.classList.add("hidden");
+          if (detailBtn) detailBtn.classList.remove("hidden");
+
+          Array.from(incomingSelectedDocs).forEach(code => {
+            const d = matchedBatch.docs[code];
+            if (!d || !d.required || d.receiveTime) {
+              incomingSelectedDocs.delete(code);
+            }
+          });
+          if (preferredDocCode) {
+            const pd = matchedBatch.docs[preferredDocCode];
+            if (pd && pd.required && !pd.receiveTime) {
+              incomingSelectedDocs.add(preferredDocCode);
+            }
+          }
+
+          if (ev.allReceived) {
+            bannerEl.className = "px-3 py-2 rounded-xl text-xs font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200";
+            bannerEl.textContent = `Batch ditemukan (${ev.arrivedCount}/${ev.requiredCount} dokumen masuk) — Semua dokumen wajib sudah lengkap.`;
+          } else {
+            bannerEl.className = "px-3 py-2 rounded-xl text-xs font-semibold border bg-blue-50 text-blue-800 border-blue-200";
+            bannerEl.textContent = `Batch ditemukan (${ev.arrivedCount}/${ev.requiredCount} dokumen masuk) — Pilih dokumen yang baru tiba hari ini.`;
+          }
+          bannerEl.classList.remove("hidden");
         } else {
-          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
-          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
-          boxNew.classList.remove("hidden");
-          boxExist.classList.add("hidden");
-        }
-        renderIncomingDocChoices();
-      }
+          incomingMatchedBatchId = null;
+          nameInput.disabled = false;
+          if (pickerRow) pickerRow.classList.remove("hidden");
+          if (detailBtn) detailBtn.classList.add("hidden");
 
-      function renderIncomingDocChoices() {
-        const wrap = document.getElementById("inc-doc-choices");
-        const hintEl = document.getElementById("inc-existing-hint");
-        const captionEl = document.getElementById("inc-doc-caption");
-        if (!wrap) return;
+          if (preferredDocCode && incomingSelectedDocs.size === 0) {
+            incomingSelectedDocs.add(preferredDocCode);
+          }
 
-        let selectedBatch = null;
-        if (incomingMode === "existing") {
-          const selId = document.getElementById("inc-existing-select").value;
-          selectedBatch = batches.find(b => b.id === selId) || null;
-          if (hintEl) {
-            if (selectedBatch) {
-              const ev = evaluateBatch(selectedBatch);
-              hintEl.textContent = `Status saat ini: ${ev.arrivedCount}/${ev.requiredCount} dokumen wajib sudah masuk.`;
+          if (!cleanBets) {
+            bannerEl.classList.add("hidden");
+            defWrap.classList.add("hidden");
+            lastAutoDetectedCodeAA = "";
+          } else {
+            const info = detectBetsPattern(cleanBets);
+            if (info.state === "MATCHED" && info.matchedProduct) {
+              const prod = info.matchedProduct;
+              const currentName = nameInput.value.trim();
+              const codeChanged = lastAutoDetectedCodeAA !== info.aa;
+
+              if (codeChanged || !currentName || currentName === lastAutoDetectedName) {
+                nameInput.value = prod.name;
+                lastAutoDetectedName = prod.name;
+              }
+              lastAutoDetectedCodeAA = info.aa;
+
+              if (presetSel) presetSel.value = prod.id;
+              const docList = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? prod.defaultDocs : ["PP", "KP", "KS", "QC", "MC"];
+              defLabel.textContent = `Terapkan default dokumen wajib produk (${docList.join(", ")})`;
+              defWrap.classList.remove("hidden");
+
+              bannerEl.className = "px-3 py-2 rounded-xl text-xs font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200";
+              bannerEl.textContent = `Batch baru • ${info.badgeText}`;
+              bannerEl.classList.remove("hidden");
             } else {
-              hintEl.textContent = "Tidak ada batch aktif — silakan beralih ke '+ Batch Baru'.";
+              lastAutoDetectedCodeAA = "";
+              defWrap.classList.add("hidden");
+              bannerEl.className = "px-3 py-2 rounded-xl text-xs font-semibold border bg-slate-100 text-slate-700 border-slate-200";
+              bannerEl.textContent = `Batch baru • ${info.badgeText}`;
+              bannerEl.classList.remove("hidden");
             }
           }
         }
 
-        wrap.innerHTML = DOC_LIST.map(def => {
-          const isSelected = incomingSelectedDocs.has(def.code);
-          let statusTag = "Baru";
-          if (selectedBatch) {
-            const d = selectedBatch.docs[def.code];
-            if (!d.required) statusTag = "N/A";
-            else if (d.receiveTime) statusTag = "Sudah";
-            else statusTag = "Belum";
-          }
-
-          const btnStyle = isSelected
-            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-            : "bg-white text-slate-800 border-slate-300 hover:border-blue-400 hover:bg-blue-50";
-
-          return `
-            <button type="button" aria-pressed="${isSelected}" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition ${btnStyle}">
-              <span class="text-xs font-extrabold">${isSelected ? "✓ " : ""}${def.code}</span>
-              <span class="text-[10px] opacity-80">${statusTag}</span>
-            </button>
-          `;
-        }).join("");
-
-        if (captionEl) {
-          const chosen = DOC_LIST.filter(d => incomingSelectedDocs.has(d.code));
-          captionEl.textContent = chosen.length
-            ? `Terpilih (${chosen.length}): ${chosen.map(d => d.label).join(", ")}`
-            : "Belum ada dokumen dipilih — klik satu atau lebih dokumen.";
-        }
+        renderIncomingDocChoices();
       }
 
-      function updateIncomingBetsUi(shouldAutoFillName) {
-        forceUpperInput(document.getElementById("inc-new-bets"));
-        const betsVal = document.getElementById("inc-new-bets").value;
-        const nameInput = document.getElementById("inc-new-name");
-        const badgeEl = document.getElementById("inc-bets-detect-badge");
-        const defWrap = document.getElementById("inc-apply-default-wrap");
-        const defLabel = document.getElementById("inc-apply-default-label");
-        const presetSel = document.getElementById("inc-product-preset");
-
-        const info = detectBetsPattern(betsVal);
-        if (info.state === "EMPTY") {
-          badgeEl.classList.add("hidden");
-          defWrap.classList.add("hidden");
-          lastAutoDetectedCodeAA = "";
-          return;
-        }
-
-        badgeEl.className = `px-3 py-2 rounded-xl text-xs font-semibold border ${info.badgeClass}`;
-        badgeEl.textContent = info.badgeText;
-        badgeEl.classList.remove("hidden");
-
-        if (info.state === "MATCHED" && info.matchedProduct) {
-          const prod = info.matchedProduct;
-          const currentName = nameInput.value.trim();
-          const codeChanged = lastAutoDetectedCodeAA !== info.aa;
-
-          if (shouldAutoFillName && (codeChanged || !currentName || currentName === lastAutoDetectedName)) {
-            nameInput.value = prod.name;
-            lastAutoDetectedName = prod.name;
-          }
-          lastAutoDetectedCodeAA = info.aa;
-
-          if (presetSel) presetSel.value = prod.id;
-          const docList = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? prod.defaultDocs : ["PP", "KP", "KS", "QC", "MC"];
-          defLabel.textContent = `Terapkan default dokumen wajib produk (${docList.join(", ")})`;
-          defWrap.classList.remove("hidden");
-        } else {
-          lastAutoDetectedCodeAA = "";
-          defWrap.classList.add("hidden");
-        }
-      }
-
-      function onIncomingBetsOrProductChange(source) {
-        if (source === "bets") {
-          updateIncomingBetsUi(true);
-        } else if (source === "name") {
-          const nameVal = document.getElementById("inc-new-name").value.trim();
-          if (nameVal !== lastAutoDetectedName) {
-            const presetSel = document.getElementById("inc-product-preset");
-            if (presetSel) presetSel.value = "";
-          }
+      function onUnifiedProductNameInput(val) {
+        const nameVal = String(val || "").trim();
+        if (nameVal !== lastAutoDetectedName) {
+          const presetSel = document.getElementById("inc-product-preset");
+          if (presetSel) presetSel.value = "";
         }
       }
 
       function onIncomingProductPresetChange(productId) {
         const prod = masterProducts.find(p => p.id === productId);
         if (!prod) return;
-        const nameInput = document.getElementById("inc-new-name");
+        const nameInput = document.getElementById("inc-product-name");
         nameInput.value = prod.name;
         lastAutoDetectedName = prod.name;
 
-        const betsInput = document.getElementById("inc-new-bets");
+        const betsInput = document.getElementById("inc-bets-input");
         if (prod.codeAA && !betsInput.value.trim()) {
           betsInput.value = `${String(prod.codeAA).toUpperCase()}01${currentYearInfo().digit}`;
-          updateIncomingBetsUi(false);
+          onUnifiedBetsInput(betsInput.value);
+        }
+      }
+
+      function renderIncomingDocChoices() {
+        const wrap = document.getElementById("inc-doc-choices");
+        const captionEl = document.getElementById("inc-doc-caption");
+        const submitBtn = document.getElementById("inc-submit-btn");
+        const selectAllWrap = document.getElementById("inc-select-all-wrap");
+        const dateSec = document.getElementById("inc-date-section");
+        const noteSec = document.getElementById("inc-note-section");
+        if (!wrap) return;
+
+        const selectedBatch = incomingMatchedBatchId
+          ? (batches.find(b => b.id === incomingMatchedBatchId) || null)
+          : null;
+        const ev = selectedBatch ? evaluateBatch(selectedBatch) : null;
+        const isBatchComplete = Boolean(ev && ev.allReceived);
+        const isBatchReleased = Boolean(ev && ev.statusLabel === "Released");
+
+        if (selectAllWrap) selectAllWrap.classList.toggle("hidden", isBatchComplete);
+        if (dateSec) dateSec.classList.toggle("hidden", isBatchComplete);
+        if (noteSec) noteSec.classList.toggle("hidden", isBatchComplete);
+
+        wrap.innerHTML = DOC_LIST.map(def => {
+          const d = selectedBatch ? selectedBatch.docs[def.code] : null;
+          const isNA = Boolean(d && !d.required);
+          const isArrived = Boolean(d && d.required && d.receiveTime);
+          const isSelected = !isNA && !isArrived && incomingSelectedDocs.has(def.code);
+
+          if (isNA) {
+            return `
+              <div class="p-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 text-center flex flex-col items-center justify-center gap-0.5 select-none" title="Dokumen tidak diperlukan (N/A)">
+                <span class="text-xs font-extrabold line-through">${def.code}</span>
+                <span class="text-[10px]">N/A</span>
+              </div>
+            `;
+          }
+
+          if (isArrived) {
+            const shortDate = formatShortDayMonth(d.receiveTime);
+            const pencilBtn = !isBatchReleased
+              ? `<button type="button" onclick="editArrivedDocDate(event, '${def.code}')" title="Ubah tanggal terima ${def.code} (${d.receiveTime})" aria-label="Ubah tanggal terima ${def.code}" class="mt-0.5 inline-flex items-center justify-center w-5 h-5 rounded-md bg-emerald-600/15 hover:bg-emerald-600 hover:text-white text-emerald-800 transition">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>`
+              : "";
+            return `
+              <div class="p-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-center flex flex-col items-center justify-between gap-0.5 select-none" title="Sudah masuk pada ${escapeHtml(d.receiveTime)} (terkunci)">
+                <span class="text-xs font-extrabold">${def.code} ✓</span>
+                <span class="text-[10px] font-bold leading-tight">${escapeHtml(shortDate)}</span>
+                ${pencilBtn}
+              </div>
+            `;
+          }
+
+          const btnStyle = isSelected
+            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+            : "bg-white text-slate-700 border-slate-300 hover:border-blue-400 hover:bg-blue-50";
+
+          return `
+            <button type="button" aria-pressed="${isSelected}" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center justify-center gap-0.5 transition ${btnStyle}">
+              <span class="text-xs font-extrabold">${isSelected ? "✓ " : ""}${def.code}</span>
+              <span class="text-[10px] opacity-80">${isSelected ? "Dipilih" : "Belum"}</span>
+            </button>
+          `;
+        }).join("");
+
+        if (isBatchComplete) {
+          if (captionEl) {
+            captionEl.className = "mt-2 text-xs font-bold text-emerald-700";
+            captionEl.textContent = "Semua dokumen sudah masuk.";
+          }
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Semua Dokumen Sudah Masuk";
+          }
+        } else {
+          const chosen = DOC_LIST.filter(d => incomingSelectedDocs.has(d.code));
+          if (captionEl) {
+            captionEl.className = "mt-2 text-xs font-semibold text-blue-700";
+            captionEl.textContent = chosen.length
+              ? `Akan dicatat (${chosen.length}): ${chosen.map(d => d.label).join(", ")}`
+              : "Klik dokumen putih di atas untuk memilih dokumen yang baru masuk.";
+          }
+          if (submitBtn) {
+            submitBtn.disabled = chosen.length === 0;
+            submitBtn.textContent = selectedBatch
+              ? `Simpan ${chosen.length || ""} Dokumen Masuk`.trim()
+              : "Buat Batch & Simpan Dokumen";
+          }
         }
       }
 
       function selectIncomingDoc(code) {
-        // Klik = pilih / batalkan pilihan (bisa lebih dari satu)
+        if (incomingMatchedBatchId) {
+          const b = batches.find(x => x.id === incomingMatchedBatchId);
+          if (b && b.docs[code] && (!b.docs[code].required || b.docs[code].receiveTime)) {
+            return;
+          }
+        }
         if (incomingSelectedDocs.has(code)) incomingSelectedDocs.delete(code);
         else incomingSelectedDocs.add(code);
         renderIncomingDocChoices();
       }
 
       function selectAllIncomingDocs(selectAll) {
-        incomingSelectedDocs = new Set(selectAll ? DOC_LIST.map(d => d.code) : []);
+        if (!selectAll) {
+          incomingSelectedDocs = new Set();
+          renderIncomingDocChoices();
+          return;
+        }
+        const selectedBatch = incomingMatchedBatchId
+          ? (batches.find(b => b.id === incomingMatchedBatchId) || null)
+          : null;
+        const available = DOC_LIST
+          .filter(d => !selectedBatch || (selectedBatch.docs[d.code].required && !selectedBatch.docs[d.code].receiveTime))
+          .map(d => d.code);
+        incomingSelectedDocs = new Set(available);
         renderIncomingDocChoices();
+      }
+
+      function editArrivedDocDate(ev, code) {
+        if (ev) ev.stopPropagation();
+        if (!incomingMatchedBatchId) return;
+        const batch = batches.find(b => b.id === incomingMatchedBatchId);
+        if (!batch) return;
+        const d = batch.docs[code];
+        if (!d || !d.receiveTime) return;
+
+        const batchId = batch.id;
+        closeIncomingModal();
+        openDocModal(batchId, code, true);
       }
 
       function submitIncomingDocument() {
         const receiveDate = normalizeDateStr(document.getElementById("inc-receive-date").value);
         const note = (document.getElementById("inc-note").value || "").trim();
+        const rawBets = normalizeBets(document.getElementById("inc-bets-input").value);
+
+        if (!rawBets) {
+          showToast("No. Bets wajib diisi.", "error");
+          return;
+        }
 
         if (!receiveDate) {
           showToast("Tanggal terima dokumen wajib diisi.", "error");
@@ -2119,24 +2207,23 @@
         }
         const codesText = selectedCodes.join(", ");
 
-        if (incomingMode === "new") {
-          const newId = (document.getElementById("inc-new-id").value || "").trim();
-          const newBets = normalizeBets(document.getElementById("inc-new-bets").value);
-          const newName = (document.getElementById("inc-new-name").value || "").trim();
+        const existingBatch = incomingMatchedBatchId
+          ? (batches.find(b => b.id === incomingMatchedBatchId) || findBatchByBets(rawBets))
+          : findBatchByBets(rawBets);
 
-          if (!newId || !newName) {
+        if (!existingBatch) {
+          const newId = generateNextBatchId();
+          const newName = (document.getElementById("inc-product-name").value || "").trim();
+
+          if (!newName) {
             showToast("Nama Produk wajib diisi untuk batch baru.", "error");
             return;
           }
-          if (newBets && batches.some(b => String(b.batchNo || "").trim().toLowerCase() === newBets.toLowerCase())) {
-            showToast(`No. Bets ${newBets} sudah terdaftar. Pilih mode Batch Aktif.`, "error");
-            return;
-          }
 
-          const displayBatchName = newBets ? `${newName} — Bets ${newBets}` : newName;
+          const displayBatchName = `${newName} — Bets ${rawBets}`;
           const newBatch = {
             id: newId,
-            batchNo: newBets,
+            batchNo: rawBets,
             productName: newName,
             batchName: displayBatchName,
             dpjTime: "",
@@ -2144,7 +2231,7 @@
             docs: createEmptyDocs()
           };
 
-          const det = detectBetsPattern(newBets);
+          const det = detectBetsPattern(rawBets);
           const applyDefCheckbox = document.getElementById("inc-apply-default-docs");
           if (det.state === "MATCHED" && det.matchedProduct && applyDefCheckbox && applyDefCheckbox.checked && Array.isArray(det.matchedProduct.defaultDocs) && det.matchedProduct.defaultDocs.length > 0) {
             const reqSet = new Set(det.matchedProduct.defaultDocs);
@@ -2166,33 +2253,28 @@
           saveBatches();
           closeIncomingModal();
           renderDashboard();
-          showToast(`Batch ${batchLabel(newBatch)} dibuat dengan dokumen masuk: ${codesText}.`, "success");
+          const ev = evaluateBatch(newBatch);
+          showToast(
+            ev.isTodayComplete
+              ? `Batch ${batchLabel(newBatch)} dibuat & LENGKAP pada hari berjalan!`
+              : `Batch baru ${batchLabel(newBatch)} dibuat dengan dokumen masuk: ${codesText}.`,
+            "success"
+          );
           return;
         }
 
-        const existingId = document.getElementById("inc-existing-select").value;
-        const targetBatch = batches.find(b => b.id === existingId);
-        if (!targetBatch) {
-          showToast("Batch aktif tidak ditemukan.", "error");
-          return;
-        }
-
-        // Jangan menimpa tanggal terima yang sudah tercatat tanpa konfirmasi
-        const conflicts = selectedCodes.filter(c => {
-          const d = targetBatch.docs[c];
-          return d.required && d.receiveTime && d.receiveTime !== receiveDate;
+        const writableCodes = selectedCodes.filter(c => {
+          const d = existingBatch.docs[c];
+          return d && d.required && !d.receiveTime;
         });
-        if (conflicts.length > 0) {
-          const list = conflicts.map(c => `${c} (${targetBatch.docs[c].receiveTime})`).join(", ");
-          if (!window.confirm(`Dokumen berikut sudah tercatat tanggal terimanya: ${list}.\nTimpa dengan ${receiveDate}?`)) return;
+
+        if (writableCodes.length === 0) {
+          showToast("Dokumen yang dipilih sudah tercatat masuk.", "error");
+          return;
         }
 
-        selectedCodes.forEach(code => {
-          const docObj = targetBatch.docs[code];
-          if (!docObj.required) {
-            docObj.required = true;
-            docObj.naNote = "";
-          }
+        writableCodes.forEach(code => {
+          const docObj = existingBatch.docs[code];
           docObj.receiveTime = receiveDate;
           if (note) docObj.arrivalNote = note;
         });
@@ -2201,18 +2283,19 @@
         closeIncomingModal();
         renderDashboard();
 
-        const ev = evaluateBatch(targetBatch);
+        const ev = evaluateBatch(existingBatch);
+        const writtenText = writableCodes.join(", ");
         if (ev.isTodayComplete) {
-          showToast(`Dokumen ${codesText} masuk — Batch ${batchLabel(targetBatch)} LENGKAP pada hari berjalan!`, "success");
+          showToast(`Dokumen ${writtenText} masuk — Batch ${batchLabel(existingBatch)} LENGKAP pada hari berjalan!`, "success");
         } else {
-          showToast(`Kedatangan dokumen ${codesText} dicatat pada ${batchLabel(targetBatch)}.`, "success");
+          showToast(`Kedatangan dokumen ${writtenText} dicatat pada ${batchLabel(existingBatch)}.`, "success");
         }
       }
 
       /* =====================================================================
          11. MODAL 2: QUICK ACTION PER DOKUMEN (KLIK PIL DI MATRIKS)
          ===================================================================== */
-      function openDocModal(batchId, docCode) {
+      function openDocModal(batchId, docCode, forceEditReceiveDate) {
         const batch = batches.find(b => b.id === batchId);
         const docDef = DOC_LIST.find(d => d.code === docCode);
         if (!batch || !docDef) return;
@@ -2250,7 +2333,22 @@
           return;
         }
 
-        // Toggle Wajib vs N/A section
+        if (forceEditReceiveDate && d.required && d.receiveTime) {
+          body.innerHTML = `
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex flex-col gap-3">
+              <div class="text-xs font-bold text-amber-900">Koreksi Tanggal Terima Dokumen (${docCode})</div>
+              <p class="text-xs text-amber-800">Tanggal tercatat saat ini: <strong>${escapeHtml(d.receiveTime)}</strong>. Perubahan ini akan meminta konfirmasi sebelum disimpan.</p>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Terima Baru</label>
+                <input type="date" id="qm-edit-receive-input" value="${escapeHtml(d.receiveTime)}" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              </div>
+              <button type="button" onclick="confirmEditReceiveDate('${escapeHtml(batch.id)}', '${docCode}')" class="w-full py-2 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Simpan Perubahan Tanggal Terima</button>
+            </div>
+          `;
+          document.getElementById("doc-modal").classList.remove("hidden");
+          return;
+        }
+
         let naSectionHtml = `
           <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2">
@@ -2294,7 +2392,9 @@
             <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 flex flex-col gap-3">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-bold text-blue-900">Tahap 2: First Check (Pelaksana)</span>
-                <span class="text-slate-600">Diterima: <strong>${escapeHtml(d.receiveTime)}</strong></span>
+                <span class="text-slate-600">Diterima: <strong>${escapeHtml(d.receiveTime)}</strong>
+                  <button type="button" onclick="openDocModal('${escapeHtml(batch.id)}', '${docCode}', true)" class="ml-1 text-blue-700 underline font-semibold">Ubah</button>
+                </span>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal First Check</label>
@@ -2340,6 +2440,50 @@
 
         body.innerHTML = naSectionHtml + stepHtml;
         document.getElementById("doc-modal").classList.remove("hidden");
+      }
+
+      function confirmEditReceiveDate(batchId, docCode) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch) return;
+        const d = batch.docs[docCode];
+        const newDate = normalizeDateStr(document.getElementById("qm-edit-receive-input").value);
+        if (!newDate) {
+          showToast("Tanggal terima wajib diisi.", "error");
+          return;
+        }
+        if (newDate === d.receiveTime) {
+          closeDocModal();
+          return;
+        }
+        if (d.firstCheckTime && diffDays(newDate, d.firstCheckTime) < 0) {
+          showToast(`Tanggal terima baru (${newDate}) tidak boleh lebih lambat dari 1st Check (${d.firstCheckTime}).`, "error");
+          return;
+        }
+        if (!window.confirm(`Ubah tanggal terima ${docCode} pada batch ${batchLabel(batch)} dari ${d.receiveTime} menjadi ${newDate}?`)) {
+          return;
+        }
+        d.receiveTime = newDate;
+        saveBatches();
+        closeDocModal();
+        renderDashboard();
+        showToast(`Tanggal terima ${docCode} diperbarui menjadi ${newDate}.`, "success");
+      }
+
+      function toggleMoreMenu(ev) {
+        if (ev) ev.stopPropagation();
+        const dd = document.getElementById("more-menu-dropdown");
+        const btn = document.getElementById("more-menu-btn");
+        if (!dd) return;
+        const willOpen = dd.classList.contains("hidden");
+        dd.classList.toggle("hidden", !willOpen);
+        if (btn) btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      }
+
+      function closeMoreMenu() {
+        const dd = document.getElementById("more-menu-dropdown");
+        const btn = document.getElementById("more-menu-btn");
+        if (dd) dd.classList.add("hidden");
+        if (btn) btn.setAttribute("aria-expanded", "false");
       }
 
       function closeDocModal() {
@@ -2465,16 +2609,12 @@
         formDraft = cloneObj(found);
         const ev = evaluateBatch(formDraft);
         draftUnlocked = ev.statusLabel !== "Released";
-        document.getElementById("batch-modal-title").textContent = `Detail Batch — ${batchLabel(found)}`;
-        const delBtn = document.getElementById("bm-delete-btn");
-        if (delBtn) delBtn.classList.remove("hidden");
+        document.getElementById("batch-modal-title").textContent = `Detail Batch — Bets ${batchLabel(found)}`;
         renderBatchModal();
         document.getElementById("batch-modal").classList.remove("hidden");
       }
 
       function closeBatchModal() {
-        const delBtn = document.getElementById("bm-delete-btn");
-        if (delBtn) delBtn.classList.add("hidden");
         document.getElementById("batch-modal").classList.add("hidden");
         formDraft = null;
       }
@@ -2488,7 +2628,7 @@
       function syncDraftBatchName() {
         if (!formDraft) return;
         const pName = (formDraft.productName || "").trim();
-        const bNo = (formDraft.batchNo || "").trim();
+        const bNo = normalizeBets(formDraft.batchNo || "");
         if (pName && bNo) {
           formDraft.batchName = `${pName} — Bets ${bNo}`;
         } else if (pName) {
@@ -2498,10 +2638,11 @@
 
       function onBatchModalBetsInput(val) {
         if (!formDraft) return;
-        forceUpperInput(document.getElementById("bm-batch-no"));
-        val = String(val || "").toUpperCase();
-        formDraft.batchNo = val;
-        const det = detectBetsPattern(val);
+        const betsEl = document.getElementById("bm-batch-no");
+        if (betsEl) forceUpperInput(betsEl);
+        const cleanVal = betsEl ? betsEl.value : normalizeBets(val);
+        formDraft.batchNo = cleanVal;
+        const det = detectBetsPattern(cleanVal);
         if (det.state === "MATCHED" && det.matchedProduct) {
           if (!formDraft.productName || formDraft.productName === lastAutoDetectedName) {
             formDraft.productName = det.matchedProduct.name;
@@ -2543,7 +2684,7 @@
           badge.classList.add("hidden");
           return;
         }
-        badge.className = `sm:col-span-3 px-3 py-2 rounded-xl text-xs font-semibold border ${det.badgeClass}`;
+        badge.className = `sm:col-span-2 px-3 py-2 rounded-xl text-xs font-semibold border ${det.badgeClass}`;
         badge.textContent = det.badgeText;
         badge.classList.remove("hidden");
       }
@@ -2564,7 +2705,7 @@
         const derivedProductName = formDraft.productName || String(formDraft.batchName || "").split(" — Bets ")[0] || "";
         const derivedBatchNo = formDraft.batchNo || (String(formDraft.batchName || "").split(" — Bets ")[1] || "");
         formDraft.productName = derivedProductName;
-        formDraft.batchNo = normalizeBets(derivedBatchNo);
+        formDraft.batchNo = derivedBatchNo;
 
         idInput.value = formDraft.id || "";
         betsInput.value = formDraft.batchNo || "";
@@ -2640,7 +2781,6 @@
           `;
         }).join("");
 
-        // Sync Point 3 (Save DPJ) section
         const dpjDateInput = document.getElementById("bm-dpj-date");
         const dpjPicInput = document.getElementById("bm-dpj-pic");
         const dpjBadge = document.getElementById("bm-dpj-badge");
@@ -2676,7 +2816,7 @@
 
       function onDraftDocRequired(code, isReq) {
         if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.id = document.getElementById("bm-release-id").value.trim() || generateNextBatchId();
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
@@ -2693,7 +2833,7 @@
 
       function onDraftDocField(code, field, val) {
         if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.id = document.getElementById("bm-release-id").value.trim() || generateNextBatchId();
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
@@ -2744,13 +2884,13 @@
 
       function saveBatchProgress() {
         if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.id = document.getElementById("bm-release-id").value.trim() || generateNextBatchId();
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
 
-        if (!formDraft.id || !formDraft.productName) {
-          showToast("Nama Produk wajib diisi.", "error");
+        if (!formDraft.batchNo || !formDraft.productName) {
+          showToast("No. Bets dan Nama Produk wajib diisi.", "error");
           return;
         }
 
@@ -2766,8 +2906,8 @@
           if (idx !== -1) batches[idx] = savedCopy;
           else batches.unshift(savedCopy);
         } else {
-          if (savedCopy.batchNo && batches.some(b => String(b.batchNo || "").trim().toLowerCase() === savedCopy.batchNo.toLowerCase())) {
-            showToast(`No. Bets ${savedCopy.batchNo} sudah terdaftar.`, "error");
+          if (batches.some(b => normalizeBets(b.batchNo) === savedCopy.batchNo)) {
+            showToast(`No. Bets ${savedCopy.batchNo} sudah digunakan.`, "error");
             return;
           }
           batches.unshift(savedCopy);
@@ -2776,57 +2916,20 @@
         saveBatches();
         closeBatchModal();
         renderDashboard();
-        showToast(`Progres batch ${batchLabel(savedCopy)} berhasil disimpan.`, "success");
+        showToast(`Progres batch Bets ${batchLabel(savedCopy)} berhasil disimpan.`, "success");
       }
 
       function executeSaveDpj() {
         if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
+        formDraft.id = document.getElementById("bm-release-id").value.trim() || generateNextBatchId();
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
         formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
         formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
 
-        if (!formDraft.id || !formDraft.productName) {
-          showToast("Nama Produk wajib diisi.", "error");
-          return;
-        }
-
-        const ev = evaluateBatch(formDraft);
-        if (ev.requiredCount === 0) {
-          showToast("Minimal harus ada 1 dokumen wajib pada setiap batch.", "error");
-          return;
-        }
-
-        const savedCopy = cloneObj(formDraft);
-        if (editingOriginalId) {
-          const idx = batches.findIndex(b => b.id === editingOriginalId);
-          if (idx !== -1) batches[idx] = savedCopy;
-          else batches.unshift(savedCopy);
-        } else {
-          if (savedCopy.batchNo && batches.some(b => String(b.batchNo || "").trim().toLowerCase() === savedCopy.batchNo.toLowerCase())) {
-            showToast(`No. Bets ${savedCopy.batchNo} sudah terdaftar.`, "error");
-            return;
-          }
-          batches.unshift(savedCopy);
-        }
-
-        saveBatches();
-        closeBatchModal();
-        renderDashboard();
-        showToast(`Progres batch ${batchLabel(savedCopy)} berhasil disimpan.`, "success");
-      }
-
-      function executeSaveDpj() {
-        if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchName = document.getElementById("bm-batch-name").value.trim();
-        formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
-        formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
-
-        if (!formDraft.id || !formDraft.batchName) {
-          showToast("Nama Batch wajib diisi.", "error");
+        if (!formDraft.batchNo || !formDraft.productName) {
+          showToast("No. Bets dan Nama Produk wajib diisi.", "error");
           return;
         }
 
@@ -2860,7 +2963,7 @@
         saveBatches();
         closeBatchModal();
         renderDashboard();
-        showToast(`Save DPJ berhasil untuk batch ${batchLabel(savedCopy)} pada ${savedCopy.dpjTime}.`, "success");
+        showToast(`Save DPJ berhasil untuk Bets ${batchLabel(savedCopy)} pada ${savedCopy.dpjTime}.`, "success");
       }
 
       function quickSaveDpjToday(batchId) {
@@ -2880,64 +2983,32 @@
         if (!batch.dpjPic) batch.dpjPic = "SPV / Officer";
         saveBatches();
         renderDashboard();
-        showToast(`Save DPJ berhasil untuk ${batchLabel(batch)} pada ${todayVal}.`, "success");
-      }
-
-      function deleteBatch(batchId) {
-        const found = batches.find(b => b.id === batchId);
-        if (!found) return;
-        if (!window.confirm(`Hapus batch "${batchLabel(found)}"?\nTindakan ini tidak bisa dibatalkan` +
-            (window.__ctSync && window.__ctSync.onBatchesSaved ? " dan berlaku di semua perangkat." : "."))) return;
-        batches = batches.filter(b => b.id !== batchId);
-        saveBatches();
-        const bm = document.getElementById("batch-modal");
-        if (bm && !bm.classList.contains("hidden")) closeBatchModal();
-        renderDashboard();
-        showToast(`Batch ${batchLabel(found)} dihapus.`, "success");
-      }
-
-      function deleteBatchFromModal() {
-        if (editingOriginalId) deleteBatch(editingOriginalId);
-      }
-
-      function clearAllData() {
-        const cloud = Boolean(window.__ctSync && window.__ctSync.onBatchesSaved);
-        const typed = window.prompt(
-          "Ini akan MENGHAPUS SEMUA batch" + (cloud ? " di SEMUA perangkat" : "") + " dan tidak bisa dibatalkan.\n\nKetik HAPUS untuk melanjutkan:"
-        );
-        if (typed === null) return;
-        if (typed.trim().toUpperCase() !== "HAPUS") {
-          showToast("Dibatalkan: kata konfirmasi tidak sesuai.", "error");
-          return;
-        }
-        const alsoProducts = window.confirm("Hapus juga semua Master Produk?\n\nOK = hapus juga\nBatal = pertahankan Master Produk");
-        batches = [];
-        currentPage = 1;
-        saveBatches();
-        if (alsoProducts) {
-          masterProducts = [];
-          saveProducts();
-        }
-        const bm = document.getElementById("batch-modal");
-        if (bm && !bm.classList.contains("hidden")) closeBatchModal();
-        renderDashboard();
-        showToast(alsoProducts ? "Semua batch & Master Produk dihapus. Mulai dari awal." : "Semua batch dihapus. Mulai dari awal.", "success");
+        showToast(`Save DPJ berhasil untuk Bets ${batchLabel(batch)} pada ${todayVal}.`, "success");
       }
 
       function resetDemoData() {
-        if (window.__ctSync && window.__ctSync.onBatchesSaved &&
-            !window.confirm("Reset akan MENGGANTI data di SEMUA perangkat dengan data demo. Lanjutkan?")) return;
         batches = getDefaultBatches(activeDateStr);
         masterProducts = getDefaultProducts();
-        currentPage = 1;
         saveBatches();
         saveProducts();
+        currentPage = 1;
         renderDashboard();
-        showToast("Data demo & Master Produk berhasil direset ke kondisi awal.", "success");
+        showToast("Data demo & Master Produk berhasil direset ke tanggal berjalan.", "success");
+      }
+
+      function clearAllData() {
+        if (!window.confirm("Kosongkan semua data batch rilisan untuk memulai dari nol? (Master Produk tetap tersimpan)")) {
+          return;
+        }
+        batches = [];
+        saveBatches();
+        currentPage = 1;
+        renderDashboard();
+        showToast("Semua data batch telah dikosongkan. Siap input baru.", "success");
       }
 
       /* =====================================================================
-         12B. MODAL 4: MASTER PRODUK CRUD
+         12B. MODAL 4: MASTER PRODUK CRUD & BULK IMPORT
          ===================================================================== */
       function openMasterModal() {
         resetMasterProductForm();
@@ -2955,7 +3026,6 @@
         draftDefaultDocs = ["PP", "KP", "KS", "QC", "MC"];
         document.getElementById("mp-form-title").textContent = "Tambah Produk ke Master";
         document.getElementById("mp-code-aa").value = "";
-        document.getElementById("mp-other-code").value = "";
         document.getElementById("mp-name").value = "";
         document.getElementById("mp-submit-btn").textContent = "Simpan Produk";
         renderMasterDefaultDocCheckboxes();
@@ -2990,7 +3060,6 @@
         draftDefaultDocs = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? cloneObj(prod.defaultDocs) : ["PP", "KP", "KS", "QC", "MC"];
         document.getElementById("mp-form-title").textContent = `Edit Produk — ${prod.name}`;
         document.getElementById("mp-code-aa").value = prod.codeAA || "";
-        document.getElementById("mp-other-code").value = prod.otherCode || "";
         document.getElementById("mp-name").value = prod.name || "";
         document.getElementById("mp-submit-btn").textContent = "Perbarui Produk";
         renderMasterDefaultDocCheckboxes();
@@ -3001,220 +3070,14 @@
         if (editingProductId === prodId) resetMasterProductForm();
         saveProducts();
         renderMasterProductTable();
-        renderIncomingDocChoices();
+        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
         showToast("Produk dihapus dari Master Produk.", "success");
-      }
-
-
-      /* ===================== IMPOR MASSAL MASTER PRODUK ===================== */
-      let importRawRows = null;   // baris dari file .xlsx (array of array)
-      let importPlan = null;      // hasil pratinjau
-
-      function parseDelimited(text) {
-        text = String(text || "").replace(/^\uFEFF/, "");
-        const firstLine = text.split(/\r?\n/)[0] || "";
-        const delim = text.includes("\t") ? "\t"
-          : ((firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ";" : ",");
-        const rows = [];
-        let row = [], cell = "", inQ = false;
-        for (let i = 0; i < text.length; i++) {
-          const ch = text[i];
-          if (inQ) {
-            if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
-            else cell += ch;
-          } else if (ch === '"' && cell === "") {
-            inQ = true;
-          } else if (ch === delim) {
-            row.push(cell); cell = "";
-          } else if (ch === "\n" || ch === "\r") {
-            if (ch === "\r" && text[i + 1] === "\n") i++;
-            row.push(cell); cell = ""; rows.push(row); row = [];
-          } else cell += ch;
-        }
-        if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
-        return rows;
-      }
-
-      function buildImportPlan(rawRows, conflictMode) {
-        const clean = (v) => String(v == null ? "" : v).replace(/\s+/g, " ").trim();
-        const rows = rawRows.filter(r => r.some(c => clean(c) !== ""));
-        if (rows.length === 0) return { error: "Tidak ada data. Tempel data dari Excel atau pilih file dulu." };
-
-        let codeIdx = -1, nameIdx = -1, start = 0;
-        const head = rows[0].map(c => clean(c).toLowerCase());
-        const hc = head.findIndex(h => /kode/.test(h));
-        const hn = head.findIndex(h => /nama/.test(h));
-        if (hc >= 0 && hn >= 0) { codeIdx = hc; nameIdx = hn; start = 1; }
-        else {
-          const cols = Math.max.apply(null, rows.map(r => r.length));
-          if (cols >= 3 && rows.slice(0, 20).every(r => /^\d+$/.test(clean(r[0])))) { codeIdx = 1; nameIdx = 2; }
-          else if (cols >= 2) { codeIdx = 0; nameIdx = 1; }
-          else return { error: "Butuh minimal 2 kolom: Kode Product dan Nama Produk. Sertakan baris judul agar kolom terbaca otomatis." };
-        }
-
-        const byAA = new Map(), byOther = new Map(), byNameNonAA = new Map();
-        masterProducts.forEach(p => {
-          if (p.codeAA) byAA.set(String(p.codeAA).toUpperCase(), p);
-          else {
-            if (p.otherCode) byOther.set(String(p.otherCode).toUpperCase(), p);
-            byNameNonAA.set(String(p.name || "").toLowerCase(), p);
-          }
-        });
-        const seenAA = new Map(), seenOther = new Set();
-        const plan = [];
-
-        for (let i = start; i < rows.length; i++) {
-          const code = clean(rows[i][codeIdx]);
-          const name = clean(rows[i][nameIdx]);
-          const item = { n: i + 1, code, name, aa: "", other: "", status: "", note: "", targetId: "" };
-          if (!name) { item.status = "skip"; item.note = "Nama kosong"; plan.push(item); continue; }
-
-          if (code.length === 2) item.aa = code.toUpperCase();
-          else if (code) item.other = code.toUpperCase();
-
-          if (item.aa) {
-            if (seenAA.has(item.aa)) {
-              item.status = "skip";
-              item.note = seenAA.get(item.aa).toLowerCase() === name.toLowerCase() ? "Duplikat di file (sama)" : `Kode ${item.aa} kembar di file dengan nama berbeda — baris pertama dipakai`;
-              plan.push(item); continue;
-            }
-            seenAA.set(item.aa, name);
-            const ex = byAA.get(item.aa);
-            if (!ex) { item.status = "new"; item.note = "Produk baru (Kode AA)"; }
-            else if (String(ex.name).toLowerCase() === name.toLowerCase()) { item.status = "same"; item.note = "Sudah ada, nama sama"; }
-            else if (conflictMode === "update") { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui nama (sebelumnya: ${ex.name})`; }
-            else { item.status = "skip"; item.note = `Kode sudah dipakai: ${ex.name} (dilewati)`; }
-          } else {
-            const key = (item.other || "") + "|" + name.toLowerCase();
-            if (seenOther.has(key)) { item.status = "skip"; item.note = "Duplikat di file"; plan.push(item); continue; }
-            seenOther.add(key);
-            const ex = item.other ? byOther.get(item.other) : byNameNonAA.get(name.toLowerCase());
-            if (!ex) { item.status = "new"; item.note = item.other ? "Produk baru — Kode Lain (bukan 2 karakter, tidak masuk No. Bets)" : "Produk baru tanpa kode"; }
-            else if (String(ex.name).toLowerCase() === name.toLowerCase()) { item.status = "same"; item.note = "Sudah ada, nama sama"; }
-            else if (conflictMode === "update") { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui nama (sebelumnya: ${ex.name})`; }
-            else { item.status = "skip"; item.note = `Kode lain sudah dipakai: ${ex.name} (dilewati)`; }
-          }
-          plan.push(item);
-        }
-        return { plan };
-      }
-
-      function importPreview() {
-        const box = document.getElementById("imp-preview");
-        const mode = document.getElementById("imp-conflict").value;
-        const raw = importRawRows || parseDelimited(document.getElementById("imp-text").value);
-        const res = buildImportPlan(raw, mode);
-        box.classList.remove("hidden");
-        if (res.error) {
-          importPlan = null;
-          box.innerHTML = `<div class="px-3 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-200 text-red-700">${escapeHtml(res.error)}</div>`;
-          return;
-        }
-        importPlan = res.plan;
-        const c = { new: 0, update: 0, same: 0, skip: 0 };
-        importPlan.forEach(r => { c[r.status]++; });
-        const chip = (cls, t) => `<span class="px-2 py-1 rounded-lg border text-[11px] font-bold ${cls}">${t}</span>`;
-        const stCls = { new: "bg-emerald-50 text-emerald-700 border-emerald-200", update: "bg-blue-50 text-blue-700 border-blue-200", same: "bg-slate-100 text-slate-600 border-slate-200", skip: "bg-amber-50 text-amber-800 border-amber-200" };
-        const stLbl = { new: "Baru", update: "Perbarui", same: "Sama", skip: "Dilewati" };
-        const LIMIT = 200;
-        const rowsHtml = importPlan.slice(0, LIMIT).map(r => `
-          <tr>
-            <td class="py-1.5 px-2 text-slate-400">${r.n}</td>
-            <td class="py-1.5 px-2 font-bold whitespace-nowrap">${escapeHtml(r.code || "—")}</td>
-            <td class="py-1.5 px-2">${escapeHtml(r.name || "—")}</td>
-            <td class="py-1.5 px-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded-md border text-[10px] font-bold ${stCls[r.status]}">${stLbl[r.status]}</span></td>
-            <td class="py-1.5 px-2 text-slate-500">${escapeHtml(r.note)}</td>
-          </tr>`).join("");
-        const importable = c.new + c.update;
-        box.innerHTML = `
-          <div class="flex flex-wrap gap-1.5">
-            ${chip(stCls.new, `${c.new} baru`)} ${chip(stCls.update, `${c.update} diperbarui`)} ${chip(stCls.same, `${c.same} sudah ada`)} ${chip(stCls.skip, `${c.skip} dilewati`)}
-          </div>
-          <div class="max-h-64 overflow-auto border border-slate-200 rounded-xl">
-            <table class="w-full text-left text-[11px]">
-              <thead class="bg-slate-50 text-slate-500 uppercase sticky top-0"><tr><th class="py-1.5 px-2">Baris</th><th class="py-1.5 px-2">Kode</th><th class="py-1.5 px-2">Nama Produk</th><th class="py-1.5 px-2">Status</th><th class="py-1.5 px-2">Keterangan</th></tr></thead>
-              <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
-            </table>
-            ${importPlan.length > LIMIT ? `<div class="py-2 text-center text-[11px] text-slate-500 bg-slate-50">…dan ${importPlan.length - LIMIT} baris lainnya (semua tetap diproses).</div>` : ""}
-          </div>
-          <div class="flex justify-end">
-            <button type="button" onclick="importCommit()" ${importable ? "" : "disabled"} class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Impor ${importable} Produk</button>
-          </div>`;
-      }
-
-      function importCommit() {
-        if (!importPlan) return;
-        const docs = draftDefaultDocs.length ? draftDefaultDocs.slice() : ["PP", "KP", "KS", "QC", "MC"];
-        let added = 0, updated = 0;
-        importPlan.forEach((r, i) => {
-          if (r.status === "new") {
-            const prod = {
-              id: `prod-${Date.now().toString(36)}-${i}-${Math.random().toString(36).slice(2, 5)}`,
-              codeAA: r.aa,
-              name: r.name,
-              defaultDocs: docs.slice()
-            };
-            if (r.other) prod.otherCode = r.other;
-            masterProducts.push(prod);
-            added++;
-          } else if (r.status === "update") {
-            const prod = masterProducts.find(x => x.id === r.targetId);
-            if (prod) { prod.name = r.name; if (r.other) prod.otherCode = r.other; updated++; }
-          }
-        });
-        saveProducts();
-        importPlan = null; importRawRows = null;
-        document.getElementById("imp-text").value = "";
-        document.getElementById("imp-file").value = "";
-        document.getElementById("imp-preview").classList.add("hidden");
-        renderMasterProductTable();
-        showToast(`Impor selesai: ${added} produk baru, ${updated} diperbarui.`, "success");
-      }
-
-      function importTextEdited() { importRawRows = null; }
-      function importConflictChanged() { if (importPlan) importPreview(); }
-
-      function importFileChosen(input) {
-        const file = input.files && input.files[0];
-        if (!file) return;
-        const name = file.name.toLowerCase();
-        const reader = new FileReader();
-        if (/\.(xlsx|xls)$/.test(name)) {
-          reader.onload = async () => {
-            try {
-              if (!window.XLSX) {
-                await new Promise((resolve, reject) => {
-                  const sc = document.createElement("script");
-                  sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-                  sc.onload = resolve; sc.onerror = () => reject(new Error("Pustaka Excel gagal dimuat (perlu internet)."));
-                  document.head.appendChild(sc);
-                });
-              }
-              const wb = window.XLSX.read(reader.result, { type: "array" });
-              const ws = wb.Sheets[wb.SheetNames[0]];
-              importRawRows = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
-              document.getElementById("imp-text").value = "";
-              importPreview();
-            } catch (err) {
-              showToast("Gagal membaca file Excel: " + err.message + " Alternatif: Copy-Paste dari Excel.", "error");
-            }
-          };
-          reader.readAsArrayBuffer(file);
-        } else {
-          reader.onload = () => {
-            importRawRows = null;
-            document.getElementById("imp-text").value = String(reader.result || "");
-            importPreview();
-          };
-          reader.readAsText(file);
-        }
       }
 
       function saveMasterProduct(ev) {
         if (ev) ev.preventDefault();
         const codeAA = (document.getElementById("mp-code-aa").value || "").trim().toUpperCase();
         const name = (document.getElementById("mp-name").value || "").trim();
-        const otherCode = (document.getElementById("mp-other-code").value || "").trim().toUpperCase();
 
         if (!name) {
           showToast("Nama Produk wajib diisi.", "error");
@@ -3238,54 +3101,51 @@
           const idx = masterProducts.findIndex(p => p.id === editingProductId);
           if (idx !== -1) {
             masterProducts[idx] = { id: editingProductId, codeAA, name, defaultDocs: docsToSave };
-            if (otherCode) masterProducts[idx].otherCode = otherCode;
           }
           showToast(`Master produk "${name}" diperbarui.`, "success");
         } else {
-          const newProd = {
+          masterProducts.unshift({
             id: `prod-${Date.now()}`,
             codeAA,
             name,
             defaultDocs: docsToSave
-          };
-          if (otherCode) newProd.otherCode = otherCode;
-          masterProducts.unshift(newProd);
+          });
           showToast(`Produk "${name}" ditambahkan ke Master Produk.`, "success");
         }
 
         saveProducts();
         resetMasterProductForm();
         renderMasterProductTable();
-        renderIncomingDocChoices();
+        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
       }
 
-      const MP_RENDER_LIMIT = 100;
       function renderMasterProductTable() {
         const tbody = document.getElementById("mp-tbody");
         const countLabel = document.getElementById("mp-count-label");
+        const searchEl = document.getElementById("mp-table-search");
         if (!tbody) return;
-        if (countLabel) countLabel.textContent = String(masterProducts.length);
 
-        const qEl = document.getElementById("mp-search");
-        const q = qEl ? qEl.value.trim() : "";
-        const filtered = masterProducts.filter(p => productMatchesQuery(p, q));
+        const q = searchEl ? String(searchEl.value || "").trim().toUpperCase() : "";
+        const filtered = masterProducts.filter(p => {
+          if (!q) return true;
+          const code = String(p.codeAA || "").toUpperCase();
+          const name = String(p.name || "").toUpperCase();
+          return code.includes(q) || name.includes(q);
+        });
 
-        if (masterProducts.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada produk di Master Produk.</td></tr>`;
-          return;
+        if (countLabel) {
+          countLabel.textContent = q ? `${filtered.length} dari ${masterProducts.length}` : String(masterProducts.length);
         }
+
         if (filtered.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">${masterProducts.length ? "Tidak ada produk yang cocok dengan pencarian." : "Belum ada produk di Master Produk."}</td></tr>`;
           return;
         }
 
-        const shown = filtered.slice(0, MP_RENDER_LIMIT);
-        const rowsHtml = shown.map(p => {
+        tbody.innerHTML = filtered.map(p => {
           const aaBadge = p.codeAA
             ? `<span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-extrabold">${escapeHtml(String(p.codeAA).toUpperCase())}</span>`
-            : (p.otherCode
-                ? `<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold" title="Kode lain: tidak dipakai untuk deteksi No. Bets">${escapeHtml(String(p.otherCode).toUpperCase())}</span>`
-                : `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold">Non-AA</span>`);
+            : `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold">Opsional / Non-AA</span>`;
 
           const docsBadges = (Array.isArray(p.defaultDocs) ? p.defaultDocs : ["PP", "KP", "KS", "QC", "MC"])
             .map(c => `<span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">${escapeHtml(c)}</span>`)
@@ -3303,11 +3163,236 @@
             </tr>
           `;
         }).join("");
-        const moreRow = filtered.length > shown.length
-          ? `<tr><td colspan="4" class="py-3 px-4 text-center text-[11px] text-slate-500 bg-slate-50">Menampilkan ${shown.length} dari ${filtered.length} produk — gunakan kotak pencarian untuk mempersempit.</td></tr>`
-          : "";
-        tbody.innerHTML = rowsHtml + moreRow;
       }
+
+      /* =====================================================================
+         12C. BULK IMPORT HELPER (EXCEL / CSV / TSV)
+         ===================================================================== */
+      let parsedImportRows = [];
+      const VALID_DOC_CODES = ["PP", "KP", "KS", "QC", "MC"];
+
+      function parseDelimitedLine(line, delimiter) {
+        const cols = [];
+        let cur = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+              cur += '"';
+              i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === delimiter && !inQuotes) {
+            cols.push(cur.trim());
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+        cols.push(cur.trim());
+        return cols;
+      }
+
+      function detectLineDelimiter(line) {
+        if (line.includes("\t")) return "\t";
+        if (line.includes(";")) return ";";
+        return ",";
+      }
+
+      function importFileChosen(ev) {
+        const file = ev && ev.target && ev.target.files && ev.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const textEl = document.getElementById("mp-import-text");
+          if (textEl) textEl.value = String(e.target.result || "");
+          importPreview();
+        };
+        reader.readAsText(file);
+      }
+
+      function importTextEdited() {
+        const wrap = document.getElementById("mp-import-preview-wrap");
+        const sumEl = document.getElementById("mp-import-summary");
+        if (wrap) wrap.classList.add("hidden");
+        if (sumEl) sumEl.textContent = "";
+        parsedImportRows = [];
+      }
+
+      function importConflictChanged() {
+        if (parsedImportRows.length > 0) importPreview();
+      }
+
+      function importLoadSample() {
+        const textEl = document.getElementById("mp-import-text");
+        if (textEl) {
+          textEl.value = [
+            "Kode AA\tNama Produk\tDefault Dokumen",
+            "65\tIbuprofen 400mg Tablet\tPP,KP,KS,QC",
+            "66\tCefadroxil 500mg Kapsul\tPP,KP,KS,QC,MC",
+            "-\tProduk Ekspor Khusus Non-AABBC\tPP,KP,KS,QC,MC"
+          ].join("\n");
+        }
+        importPreview();
+      }
+
+      function importClearAll() {
+        const textEl = document.getElementById("mp-import-text");
+        const fileEl = document.getElementById("mp-import-file");
+        if (textEl) textEl.value = "";
+        if (fileEl) fileEl.value = "";
+        importTextEdited();
+      }
+
+      function importPreview() {
+        const textEl = document.getElementById("mp-import-text");
+        const raw = textEl ? String(textEl.value || "") : "";
+        const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const conflictMode = (document.getElementById("mp-import-conflict") || {}).value || "update";
+
+        if (lines.length === 0) {
+          showToast("Tempel data atau pilih file terlebih dahulu.", "error");
+          return;
+        }
+
+        const seenAA = new Set();
+        parsedImportRows = [];
+
+        lines.forEach((line, idx) => {
+          const delim = detectLineDelimiter(line);
+          const cols = parseDelimitedLine(line, delim);
+          const col0 = (cols[0] || "").trim();
+          const col1 = (cols[1] || "").trim();
+          const col2 = (cols[2] || "").trim();
+
+          if (idx === 0 && /^(kode|code)/i.test(col0) && /^(nama|product|produk)/i.test(col1)) {
+            return;
+          }
+
+          let codeAA = col0.toUpperCase();
+          if (codeAA === "-" || codeAA === "N/A" || codeAA === "NONE") codeAA = "";
+          const name = col1;
+
+          let status = "Baru";
+          let valid = true;
+
+          if (!name) {
+            valid = false;
+            status = "Error: Nama produk kosong";
+          } else if (codeAA && !/^[A-Z0-9]{2}$/.test(codeAA)) {
+            valid = false;
+            status = `Error: Kode "${codeAA}" harus 2 karakter`;
+          } else if (codeAA && seenAA.has(codeAA)) {
+            valid = false;
+            status = `Duplikat di input (${codeAA})`;
+          } else {
+            if (codeAA) seenAA.add(codeAA);
+            const existing = codeAA
+              ? masterProducts.find(p => String(p.codeAA || "").toUpperCase() === codeAA)
+              : masterProducts.find(p => String(p.name || "").trim().toLowerCase() === name.toLowerCase());
+            if (existing) {
+              if (conflictMode === "skip") {
+                valid = false;
+                status = "Dilewati (Sudah ada)";
+              } else {
+                status = "Perbarui";
+              }
+            }
+          }
+
+          let defaultDocs = ["PP", "KP", "KS", "QC", "MC"];
+          if (col2) {
+            const tokens = col2.toUpperCase().split(/[\s,;|/]+/).filter(t => VALID_DOC_CODES.includes(t));
+            if (tokens.length > 0) {
+              defaultDocs = Array.from(new Set(tokens));
+            }
+          }
+
+          parsedImportRows.push({
+            lineNo: idx + 1,
+            codeAA,
+            name,
+            defaultDocs,
+            valid,
+            status
+          });
+        });
+
+        const validCount = parsedImportRows.filter(r => r.valid).length;
+        const invalidCount = parsedImportRows.length - validCount;
+
+        const sumEl = document.getElementById("mp-import-summary");
+        if (sumEl) {
+          sumEl.textContent = `${validCount} baris siap diimpor • ${invalidCount} baris dilewati/error`;
+        }
+
+        const tbody = document.getElementById("mp-import-preview-tbody");
+        if (tbody) {
+          tbody.innerHTML = parsedImportRows.map(r => {
+            const stBadge = r.valid
+              ? `<span class="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold">${escapeHtml(r.status)}</span>`
+              : `<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold">${escapeHtml(r.status)}</span>`;
+            return `
+              <tr class="${r.valid ? "" : "opacity-65 bg-slate-50"}">
+                <td class="py-1.5 px-3 text-slate-500">${r.lineNo}</td>
+                <td class="py-1.5 px-3 font-bold">${escapeHtml(r.codeAA || "—")}</td>
+                <td class="py-1.5 px-3 font-semibold text-slate-900">${escapeHtml(r.name || "—")}</td>
+                <td class="py-1.5 px-3 text-slate-600">${escapeHtml(r.defaultDocs.join(", "))}</td>
+                <td class="py-1.5 px-3">${stBadge}</td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        const wrap = document.getElementById("mp-import-preview-wrap");
+        const commitBtn = document.getElementById("mp-import-commit-btn");
+        if (wrap) wrap.classList.remove("hidden");
+        if (commitBtn) {
+          commitBtn.disabled = validCount === 0;
+          commitBtn.textContent = `Impor ${validCount} Produk Valid`;
+        }
+      }
+
+      function importCommit() {
+        const validRows = parsedImportRows.filter(r => r.valid);
+        if (validRows.length === 0) return;
+
+        let added = 0;
+        let updated = 0;
+
+        validRows.forEach((r, i) => {
+          const existingIdx = r.codeAA
+            ? masterProducts.findIndex(p => String(p.codeAA || "").toUpperCase() === r.codeAA)
+            : masterProducts.findIndex(p => String(p.name || "").trim().toLowerCase() === r.name.toLowerCase());
+
+          if (existingIdx !== -1) {
+            masterProducts[existingIdx] = {
+              id: masterProducts[existingIdx].id,
+              codeAA: r.codeAA,
+              name: r.name,
+              defaultDocs: r.defaultDocs
+            };
+            updated++;
+          } else {
+            masterProducts.unshift({
+              id: `prod-${Date.now()}-${i}`,
+              codeAA: r.codeAA,
+              name: r.name,
+              defaultDocs: r.defaultDocs
+            });
+            added++;
+          }
+        });
+
+        saveProducts();
+        renderMasterProductTable();
+        populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
+        importClearAll();
+        showToast(`Impor selesai: ${added} produk ditambahkan, ${updated} diperbarui.`, "success");
+      }
+
       /* =====================================================================
          13. GLOBAL EXPORTS & BOOTSTRAP
          ===================================================================== */
@@ -3324,19 +3409,26 @@
 
       window.openIncomingModal = openIncomingModal;
       window.closeIncomingModal = closeIncomingModal;
-      window.setIncomingMode = setIncomingMode;
+      window.openMatchedBatchDetail = openMatchedBatchDetail;
+      window.onUnifiedBetsInput = onUnifiedBetsInput;
+      window.onUnifiedProductNameInput = onUnifiedProductNameInput;
       window.renderIncomingDocChoices = renderIncomingDocChoices;
       window.selectIncomingDoc = selectIncomingDoc;
+      window.editArrivedDocDate = editArrivedDocDate;
+      window.confirmEditReceiveDate = confirmEditReceiveDate;
+      window.toggleMoreMenu = toggleMoreMenu;
+      window.closeMoreMenu = closeMoreMenu;
       window.renderMasterProductTable = renderMasterProductTable;
       window.importPreview = importPreview;
       window.importCommit = importCommit;
       window.importFileChosen = importFileChosen;
       window.importTextEdited = importTextEdited;
       window.importConflictChanged = importConflictChanged;
+      window.importLoadSample = importLoadSample;
+      window.importClearAll = importClearAll;
       window.filterProductPreset = filterProductPreset;
       window.selectAllIncomingDocs = selectAllIncomingDocs;
       window.submitIncomingDocument = submitIncomingDocument;
-      window.onIncomingBetsOrProductChange = onIncomingBetsOrProductChange;
       window.onIncomingProductPresetChange = onIncomingProductPresetChange;
 
       window.openDocModal = openDocModal;
@@ -3361,8 +3453,6 @@
       window.executeSaveDpj = executeSaveDpj;
       window.quickSaveDpjToday = quickSaveDpjToday;
       window.resetDemoData = resetDemoData;
-      window.deleteBatch = deleteBatch;
-      window.deleteBatchFromModal = deleteBatchFromModal;
       window.clearAllData = clearAllData;
 
       window.openMasterModal = openMasterModal;
@@ -3373,26 +3463,10 @@
       window.deleteMasterProduct = deleteMasterProduct;
       window.saveMasterProduct = saveMasterProduct;
 
-      /* Jembatan ke lapisan sinkronisasi Firestore (modul di bawah) */
-      window.__ctSync = window.__ctSync || {};
-      Object.assign(window.__ctSync, {
-        getBatches: function () { return cloneObj(batches); },
-        getProducts: function () { return cloneObj(masterProducts); },
-        toast: function (msg, type) { showToast(msg, type); },
-        applyRemoteBatches: function (arr) {
-          const changed = normalizeAllBatches(arr);   // seragamkan data lama dari cloud
-          batches = arr;
-          memoryFallback = cloneObj(batches);
-          try { if (window.localStorage) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(batches)); } catch (e) {}
-          renderDashboard();
-          if (changed) saveBatches();                // kirim versi seragam kembali ke cloud
-        },
-        applyRemoteProducts: function (arr) {
-          masterProducts = arr;
-          productMemoryFallback = cloneObj(masterProducts);
-          try { if (window.localStorage) window.localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(masterProducts)); } catch (e) {}
-          const mm = document.getElementById("master-modal");
-          if (mm && !mm.classList.contains("hidden")) renderMasterProductTable();
+      document.addEventListener("click", function (ev) {
+        const wrap = document.getElementById("more-menu-wrap");
+        if (wrap && !wrap.contains(ev.target)) {
+          closeMoreMenu();
         }
       });
 
@@ -3404,265 +3478,6 @@
         renderDashboard();
       });
     })();
-  </script>
-
-  <!-- ======================================================================= -->
-  <!-- FIREBASE: INISIALISASI + AUTH GUARD + SINKRONISASI FIRESTORE             -->
-  <!-- ======================================================================= -->
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    // (dimuat dengan import() agar kegagalan jaringan/CDN bisa ditangkap dan tidak membuat layar putih)
-    const FB = "https://www.gstatic.com/firebasejs/13.4.0/";
-    let initializeApp, getAnalytics, getAuth, onAuthStateChanged, signOut;
-    try {
-      ({ initializeApp } = await import(FB + "firebase-app.js"));
-      ({ getAuth, onAuthStateChanged, signOut } = await import(FB + "firebase-auth.js"));
-    } catch (err) {
-      console.error("Gagal memuat Firebase SDK:", err);
-      window.__authFail("Gagal memuat Firebase SDK dari gstatic.com (" + (err && err.message ? err.message : err) + "). Periksa koneksi/pemblokir iklan, lalu coba lagi.");
-      throw err;
-    }
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
-
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-    const firebaseConfig = {
-      apiKey: "AIzaSyBCgauuitX89coLfFSd6hBG1wR8NfebBSg",
-      authDomain: "brftxcycletime.firebaseapp.com",
-      projectId: "brftxcycletime",
-      storageBucket: "brftxcycletime.firebasestorage.app",
-      messagingSenderId: "434471197911",
-      appId: "1:434471197911:web:3d7c4028763d9d03816492",
-      measurementId: "G-W2TXSEHFJB"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    import(FB + "firebase-analytics.js").then((m) => { try { m.getAnalytics(app); } catch (e) {} }).catch(() => {});
-    const auth = getAuth(app);
-    window.firebaseApp = app;
-    window.firebaseAuth = auth;
-
-    let syncStarted = false;
-
-    onAuthStateChanged(auth, (user) => {
-      clearTimeout(window.__splashWatchdog);
-      if (!user) { location.replace("login.html"); return; }
-      const emailEl = document.getElementById("user-email");
-      if (emailEl) {
-        emailEl.textContent = user.displayName || user.email || "";
-        emailEl.title = user.email || "";
-      }
-      document.documentElement.classList.remove("auth-pending");
-      if (!syncStarted) { syncStarted = true; startCloudSync(user); }
-    }, (err) => {
-      window.__authFail("Gagal memeriksa status login: " + (err && err.code ? err.code : err));
-    });
-
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-      try { await signOut(auth); } finally { location.replace("login.html"); }
-    });
-
-    /* =====================================================================
-       SINKRONISASI FIRESTORE
-       Struktur:  workspaces/main/batches/{b_<id>}   -> { o, data(JSON), updatedAt, updatedBy }
-                  workspaces/main/products/{p_<id>}  -> { o, data(JSON), updatedAt, updatedBy }
-       - Satu dokumen per batch/produk, jadi dua orang mengedit batch berbeda tidak saling menimpa.
-       - Cache offline (IndexedDB): perubahan saat offline diantrikan & terkirim otomatis saat online.
-       - Perangkat pertama yang login saat cloud kosong akan mengunggah data lokalnya (seed).
-       ===================================================================== */
-    const ui = {
-      dot: () => document.getElementById("sync-dot"),
-      text: () => document.getElementById("sync-text")
-    };
-    const STATES = {
-      connecting: ["bg-amber-400", "Menyambung…"],
-      synced:     ["bg-emerald-500", "Tersinkron"],
-      saving:     ["bg-blue-500", "Menyimpan…"],
-      offline:    ["bg-slate-400", "Offline — tersimpan lokal"],
-      error:      ["bg-red-500", "Gagal sinkron"],
-      local:      ["bg-slate-400", "Mode lokal"]
-    };
-    let currentState = "connecting";
-    function setStatus(kind) {
-      currentState = kind;
-      const d = ui.dot(), t = ui.text();
-      if (!d || !t) return;
-      d.className = "w-2 h-2 rounded-full " + STATES[kind][0];
-      t.textContent = STATES[kind][1];
-    }
-    function toast(msg, type) { if (window.__ctSync && window.__ctSync.toast) window.__ctSync.toast(msg, type); }
-
-    async function startCloudSync(user) {
-      let fs;
-      try {
-        fs = await import("https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js");
-      } catch (e) {
-        console.warn("Firestore gagal dimuat, berjalan dalam mode lokal.", e);
-        setStatus("local");
-        return;
-      }
-      const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-              collection, doc, onSnapshot, writeBatch, setDoc, getDocFromServer, serverTimestamp } = fs;
-
-      let db;
-      try {
-        db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
-      } catch (e) {
-        db = fs.getFirestore(app);
-      }
-
-      let pendingCommits = 0;
-      function refreshStatus() {
-        if (!navigator.onLine) setStatus("offline");
-        else if (pendingCommits > 0) setStatus("saving");
-        else if (currentState !== "error") setStatus("synced");
-      }
-      window.addEventListener("online", () => { if (currentState !== "error") refreshStatus(); });
-      window.addEventListener("offline", () => setStatus("offline"));
-
-      function createSync(name, prefix, bridgeGet, bridgeApply, hookName) {
-        const col = collection(db, "workspaces", "main", name);
-        const docRef = (id) => doc(db, "workspaces", "main", name, prefix + encodeURIComponent(String(id)));
-        const metaRef = doc(db, "workspaces", "main", "meta", name);   // penanda "sudah pernah diinisialisasi"
-        const writeMarker = () => setDoc(metaRef, { initialized: true, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {});
-        let initializing = false;
-        let lastSnap = null;
-        const known = new Map();   // id -> { o, json }  (kondisi terakhir yang diketahui di cloud, termasuk antrian lokal)
-        let ready = false;
-
-        function rememberFrom(snap) {
-          known.clear();
-          const items = [];
-          snap.docs.forEach((d) => {
-            const v = d.data();
-            let obj;
-            try { obj = JSON.parse(v.data); } catch (e) { return; }
-            if (!obj || obj.id === undefined) return;
-            known.set(String(obj.id), { o: Number(v.o) || 0, json: v.data });
-            items.push({ o: Number(v.o) || 0, obj });
-          });
-          items.sort((a, b) => a.o - b.o);
-          return items.map((x) => x.obj);
-        }
-
-        function assignOrders(items) {
-          const orders = items.map((it) => (known.has(it.id) ? known.get(it.id).o : null));
-          for (let i = 0; i < orders.length; i++) {
-            if (orders[i] !== null) continue;
-            let prev = null, next = null;
-            for (let k = i - 1; k >= 0; k--) if (orders[k] !== null) { prev = orders[k]; break; }
-            for (let k = i + 1; k < orders.length; k++) if (orders[k] !== null) { next = orders[k]; break; }
-            if (prev === null && next === null) orders[i] = (i + 1) * 1000;
-            else if (prev === null) orders[i] = next - 1000;
-            else if (next === null) orders[i] = prev + 1000;
-            else orders[i] = (prev + next) / 2;
-          }
-          return orders;
-        }
-
-        async function flush(arr) {
-          const items = arr.map((obj) => ({ id: String(obj.id), obj, json: JSON.stringify(obj) }));
-          const orders = assignOrders(items);
-          const ops = [];
-          const seen = new Set();
-          items.forEach((it, i) => {
-            seen.add(it.id);
-            const k = known.get(it.id);
-            if (!k || k.json !== it.json || k.o !== orders[i]) {
-              ops.push({ type: "set", id: it.id, o: orders[i], json: it.json });
-              known.set(it.id, { o: orders[i], json: it.json });
-            }
-          });
-          Array.from(known.keys()).forEach((id) => {
-            if (!seen.has(id)) { ops.push({ type: "delete", id }); known.delete(id); }
-          });
-          if (!ops.length) return;
-
-          for (let i = 0; i < ops.length; i += 400) {
-            const wb = writeBatch(db);
-            ops.slice(i, i + 400).forEach((op) => {
-              if (op.type === "set") {
-                wb.set(docRef(op.id), { o: op.o, data: op.json, updatedAt: serverTimestamp(), updatedBy: user.email || user.uid });
-              } else {
-                wb.delete(docRef(op.id));
-              }
-            });
-            pendingCommits++; refreshStatus();
-            wb.commit()
-              .then(() => { pendingCommits--; refreshStatus(); })
-              .catch((err) => {
-                pendingCommits--;
-                console.error("Gagal menulis ke Firestore:", err);
-                setStatus("error");
-                toast("Gagal menyimpan ke cloud: " + (err.code || err.message), "error");
-              });
-          }
-        }
-
-        // Dipanggil dashboard setiap kali data lokal disimpan
-        window.__ctSync[hookName] = (arr) => { if (ready) flush(arr); };
-
-        function handle(snap) {
-          lastSnap = snap;
-          const fromServer = !snap.metadata.fromCache;
-
-          if (!ready) {
-            if (snap.empty) {
-              if (!fromServer || initializing) return;   // cache kosong: tunggu jawaban server
-              initializing = true;
-              // Cloud kosong: seed HANYA jika belum pernah diinisialisasi. Jika penanda ada,
-              // berarti data sengaja dikosongkan -> jangan dihidupkan lagi oleh perangkat lama.
-              getDocFromServer(metaRef).then((m) => {
-                initializing = false;
-                ready = true;
-                if (m.exists()) {
-                  known.clear();
-                  if (bridgeGet().length) bridgeApply([]);
-                } else {
-                  flush(bridgeGet());
-                }
-                writeMarker();
-                refreshStatus();
-              }).catch(() => {
-                initializing = false;
-                setTimeout(() => { if (!ready && lastSnap) handle(lastSnap); }, 5000);
-              });
-              return;
-            }
-            ready = true;
-            writeMarker();
-          } else {
-            const changes = snap.docChanges();
-            if (changes.length && changes.every((c) => c.doc.metadata.hasPendingWrites)) {
-              return;                            // gema dari tulisan lokal sendiri
-            }
-          }
-
-          const remoteArr = rememberFrom(snap);
-          if (JSON.stringify(remoteArr) !== JSON.stringify(bridgeGet())) bridgeApply(remoteArr);
-          if (fromServer) refreshStatus();
-        }
-
-        onSnapshot(col, handle, (err) => {
-          console.error("Snapshot error (" + name + "):", err);
-          setStatus("error");
-          toast(err.code === "permission-denied"
-            ? "Akses ke cloud ditolak. Periksa Firestore Rules / akun Anda."
-            : "Sinkronisasi gagal: " + (err.code || err.message), "error");
-        });
-      }
-
-      const bridge = window.__ctSync;
-      createSync("batches",  "b_", bridge.getBatches,  bridge.applyRemoteBatches,  "onBatchesSaved");
-      createSync("products", "p_", bridge.getProducts, bridge.applyRemoteProducts, "onProductsSaved");
-    }
-
-    // PWA: service worker
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-    }
   </script>
 </body>
 </html>
