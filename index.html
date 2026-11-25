@@ -82,6 +82,11 @@
       document.getElementById("splash-msg").textContent = "Aplikasi belum bisa dibuka.";
       e.textContent = msg; e.style.display = "block"; b.style.display = "flex";
     };
+    window.closeMoreMenu = function () { var d = document.getElementById("more-menu"); if (d) d.open = false; };
+    document.addEventListener("click", function (e) {
+      var d = document.getElementById("more-menu");
+      if (d && d.open && !d.contains(e.target)) d.open = false;
+    });
     window.__resetAppCache = function () {
       var jobs = [];
       if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
@@ -107,46 +112,29 @@
       <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
         <div>
           <h3 id="incoming-modal-title" class="text-base font-bold">Catat Dokumen Masuk (Incoming Trigger)</h3>
-          <p class="text-xs text-slate-300 mt-0.5">Catat dokumen yang tiba lebih dulu; dokumen lain tetap berstatus "Belum Masuk"</p>
+          <p class="text-xs text-slate-300 mt-0.5">Ketik No. Bets: batch lama dikenali otomatis, batch baru dibuat otomatis</p>
         </div>
         <button type="button" onclick="closeIncomingModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
       </div>
 
       <div class="p-5 overflow-y-auto flex flex-col gap-4">
-        <!-- Step 1: Select Batch Mode -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">1. Pilih Batch Perilisan</label>
-          <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl mb-2.5">
-            <button type="button" id="inc-mode-existing" onclick="setIncomingMode('existing')" class="py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition">Batch Aktif</button>
-            <button type="button" id="inc-mode-new" onclick="setIncomingMode('new')" class="py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">+ Batch Baru</button>
-          </div>
+        <!-- Step 1: No. Bets (satu kolom: batch lama dikenali, batch baru dibuat otomatis) -->
+        <div class="flex flex-col gap-2.5">
+          <label for="inc-new-bets" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">1. No. Bets <span class="normal-case font-semibold text-slate-500">(pola AABBC)</span></label>
+          <input type="text" id="inc-new-bets" list="inc-bets-list" oninput="onIncomingBetsOrProductChange('bets')" onkeyup="onIncomingBetsOrProductChange('bets')" onchange="onIncomingBetsOrProductChange('bets')" autocomplete="off" autocapitalize="characters" placeholder="Ketik No. Bets, mis. 61046 (batch lama dikenali otomatis)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+          <datalist id="inc-bets-list"></datalist>
+          <input type="hidden" id="inc-new-id" />
+          <div id="inc-bets-detect-badge" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
 
-          <div id="inc-existing-box">
-            <select id="inc-existing-select" onchange="renderIncomingDocChoices()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"></select>
-            <p id="inc-existing-hint" class="mt-1.5 text-xs text-slate-500"></p>
-            <p class="mt-1 text-xs text-blue-700">Batch belum ada di daftar? Klik <b>+ Batch Baru</b> di atas, lalu isi No. Bets.</p>
-          </div>
-
-          <div id="inc-new-box" class="hidden flex flex-col gap-2.5">
-            <div class="grid grid-cols-1 gap-2">
-              <div class="hidden" style="display:none" aria-hidden="true">
-                <label for="inc-new-id" class="block text-[11px] font-bold text-slate-600 mb-1">ID Perilisan</label>
-                <input type="text" id="inc-new-id" placeholder="REL-2026-008" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-              </div>
-              <div>
-                <label for="inc-new-bets" class="block text-[11px] font-bold text-slate-600 mb-1">No. Bets (Pola AABBC)</label>
-                <input type="text" id="inc-new-bets" oninput="onIncomingBetsOrProductChange('bets')" onkeyup="onIncomingBetsOrProductChange('bets')" onchange="onIncomingBetsOrProductChange('bets')" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046 atau TRIAL-01" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
-              </div>
-            </div>
-            <div id="inc-bets-detect-badge" class="hidden px-3 py-2 rounded-xl text-xs font-semibold border"></div>
+          <div id="inc-new-fields" class="hidden space-y-2.5">
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk</label>
-                <span class="inline-flex items-center gap-1">
-                <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="cari produk…" class="text-[11px] w-24 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
-                <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 focus:outline-none">
-                  <option value="">-- Pilih dari Master Produk --</option>
-                </select>
+              <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk (batch baru)</label>
+                <span class="inline-flex items-center gap-1 max-w-full">
+                  <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="cari produk…" class="text-[11px] w-24 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
+                  <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 w-40 max-w-full focus:outline-none">
+                    <option value="">-- Pilih dari Master --</option>
+                  </select>
                 </span>
               </div>
               <input type="text" id="inc-new-name" oninput="onIncomingBetsOrProductChange('name')" placeholder="Otomatis terisi jika kode AA cocok, atau ketik/pilih Nama Produk" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
@@ -161,7 +149,7 @@
         <!-- Step 2: Select Incoming Document -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Dokumen Mana yang Baru Datang? <span class="normal-case font-semibold text-slate-500">(bisa lebih dari satu)</span></label>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2. Dokumen yang Baru Datang <span class="normal-case font-semibold text-slate-500">(bisa lebih dari satu)</span></label>
             <span class="text-[11px] font-semibold whitespace-nowrap">
               <button type="button" onclick="selectAllIncomingDocs(true)" class="text-blue-700 hover:text-blue-900">Pilih semua</button>
               <span class="text-slate-300 mx-1">|</span>
@@ -170,6 +158,16 @@
           </div>
           <div id="inc-doc-choices" class="grid grid-cols-5 gap-2"></div>
           <p id="inc-doc-caption" class="mt-1.5 text-xs font-semibold text-blue-700"></p>
+          <p class="mt-1 text-[11px] text-slate-500"><span class="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1"></span>sudah masuk (terkunci; ✎ ubah tanggal)<span class="inline-block w-2 h-2 rounded-sm bg-blue-600 mr-1 ml-3"></span>dipilih<span class="inline-block w-2 h-2 rounded-sm bg-slate-300 mr-1 ml-3"></span>N/A</p>
+          <p id="inc-save-note" class="hidden mt-2 text-xs font-semibold text-amber-700"></p>
+          <div id="inc-edit-date-box" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50">
+            <div class="text-xs font-bold text-amber-900 mb-1.5">Ubah tanggal terima <span id="inc-edit-date-code"></span></div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="date" id="inc-edit-date-input" class="px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
+              <button type="button" onclick="saveEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Simpan Perubahan</button>
+              <button type="button" onclick="cancelEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition">Batal</button>
+            </div>
+          </div>
         </div>
 
         <!-- Step 3: Receive Date -->
@@ -190,7 +188,7 @@
 
       <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex items-center justify-end gap-2">
         <button type="button" onclick="closeIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Batal</button>
-        <button type="button" onclick="submitIncomingDocument()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">Simpan & Trigger Dokumen</button>
+        <button type="button" id="inc-submit-btn" onclick="submitIncomingDocument()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition disabled:opacity-50 disabled:cursor-not-allowed">Simpan Dokumen Masuk</button>
       </div>
     </div>
   </div>
@@ -430,9 +428,13 @@
         </div>
 
         <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Produk (AA)</button>
-        <button type="button" onclick="resetDemoData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Reset Data Demo</button>
-        <button type="button" onclick="clearAllData()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white text-red-700 border border-red-200 hover:bg-red-50 transition" title="Hapus semua data & mulai dari awal">Kosongkan Data</button>
-        <button type="button" onclick="openNewBatchModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 transition">Buat Batch Lengkap</button>
+        <details id="more-menu" class="relative">
+          <summary class="list-none cursor-pointer select-none px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition" style="list-style:none">⋯ Lainnya</summary>
+          <div class="absolute left-0 mt-1.5 z-40 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex flex-col gap-1">
+            <button type="button" onclick="closeMoreMenu(); resetDemoData()" class="text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Reset Data Demo</button>
+            <button type="button" onclick="closeMoreMenu(); clearAllData()" class="text-left px-3 py-2 rounded-lg text-xs font-semibold text-red-700 hover:bg-red-50 transition">Kosongkan Data (mulai dari awal)</button>
+          </div>
+        </details>
         <button type="button" onclick="openIncomingModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition">+ Catat Dokumen Masuk</button>
         <div class="inline-flex items-center gap-2 pl-3 border-l border-slate-200 ml-1">
           <span id="sync-status" class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500" title="Status sinkronisasi"><span id="sync-dot" class="w-2 h-2 rounded-full bg-slate-300"></span><span id="sync-text" class="hidden sm:inline">Menyambung…</span></span>
@@ -1912,107 +1914,179 @@
       }
 
       function openIncomingModal(preselectedBatchId, preselectedDocCode) {
-        const activeBatches = batches.filter(b => evaluateBatch(b).statusLabel !== "Released");
-        const selectEl = document.getElementById("inc-existing-select");
-
-        selectEl.innerHTML = activeBatches.map(b => {
-          const ev = evaluateBatch(b);
-          return `<option value="${escapeHtml(b.id)}">${escapeHtml(b.batchName)} (${ev.arrivedCount}/${ev.requiredCount} masuk)</option>`;
-        }).join("");
-
-        if (preselectedDocCode) {
-          incomingSelectedDocs = new Set([preselectedDocCode]);
+        const dl = document.getElementById("inc-bets-list");
+        if (dl) {
+          dl.innerHTML = batches
+            .filter(b => evaluateBatch(b).statusLabel !== "Released")
+            .map(b => `<option value="${escapeHtml(batchLabel(b))}">${escapeHtml(b.batchName)}</option>`)
+            .join("");
         }
 
-        if (preselectedBatchId && activeBatches.some(b => b.id === preselectedBatchId)) {
-          setIncomingMode("existing");
-          selectEl.value = preselectedBatchId;
-        } else if (activeBatches.length > 0) {
-          setIncomingMode("existing");
-        } else {
-          setIncomingMode("new");
-        }
+        incomingSelectedDocs = new Set();
+        incomingEditCode = null;
+        document.getElementById("inc-edit-date-box").classList.add("hidden");
 
         document.getElementById("inc-new-id").value = generateNextBatchId();
         document.getElementById("inc-new-name").value = "";
-        document.getElementById("inc-new-bets").value = "";
+        const betsEl = document.getElementById("inc-new-bets");
+        const pre = preselectedBatchId ? batches.find(b => b.id === preselectedBatchId) : null;
+        betsEl.value = pre ? batchLabel(pre) : "";
         lastAutoDetectedName = "";
         lastAutoDetectedCodeAA = "";
         populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
-        updateIncomingBetsUi(false);
 
         document.getElementById("inc-receive-date").value = normalizeDateStr(activeDateStr) || getSystemTodayStr();
         document.getElementById("inc-note").value = "";
 
-        renderIncomingDocChoices();
+        updateIncomingBetsUi(false, true);
+        if (preselectedDocCode) {
+          const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+          if (incomingDocState(target, preselectedDocCode).state === "free") {
+            incomingSelectedDocs.add(preselectedDocCode);
+            renderIncomingDocChoices();
+            updateIncomingSaveState();
+          }
+        }
         document.getElementById("incoming-modal").classList.remove("hidden");
+        if (!pre) setTimeout(() => { try { betsEl.focus(); } catch (e) {} }, 50);
       }
 
       function closeIncomingModal() {
         document.getElementById("incoming-modal").classList.add("hidden");
       }
 
-      function setIncomingMode(mode) {
-        incomingMode = mode;
-        const btnExist = document.getElementById("inc-mode-existing");
-        const btnNew = document.getElementById("inc-mode-new");
-        const boxExist = document.getElementById("inc-existing-box");
-        const boxNew = document.getElementById("inc-new-box");
+      function setIncomingMode() {
+        // Dipertahankan agar kompatibel; mode ditentukan otomatis dari No. Bets
+        updateIncomingBetsUi(false, true);
+      }
 
-        if (mode === "existing") {
-          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
-          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
-          boxExist.classList.remove("hidden");
-          boxNew.classList.add("hidden");
-        } else {
-          btnNew.className = "py-1.5 px-3 rounded-lg text-xs font-semibold bg-white text-blue-700 shadow-xs transition";
-          btnExist.className = "py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
-          boxNew.classList.remove("hidden");
-          boxExist.classList.add("hidden");
+      let incomingTargetBatchId = null;
+      let incomingEditCode = null;
+      const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+      function formatDayMonth(dateStr) {
+        const clean = normalizeDateStr(dateStr);
+        if (!clean) return "—";
+        const p = clean.split("-");
+        return `${Number(p[2])} ${MONTHS_ID[Number(p[1]) - 1] || ""}`;
+      }
+
+      function findBatchByBets(v) {
+        const q = normalizeBets(v);
+        if (!q) return null;
+        return batches.find(b =>
+          normalizeBets(b.batchNo) === q ||
+          normalizeBets(b.id) === q ||
+          normalizeBets(String(b.batchName || "").split(" — Bets ")[1] || "") === q
+        ) || null;
+      }
+
+      // free = bisa dipilih | received = sudah masuk (terkunci) | na = tidak wajib | locked = batch Released
+      function incomingDocState(target, code) {
+        if (!target) return { state: "free" };
+        const d = target.docs[code];
+        if (!d || !d.required) return { state: "na" };
+        if (d.receiveTime) return { state: "received", date: d.receiveTime };
+        if (evaluateBatch(target).statusLabel === "Released") return { state: "locked" };
+        return { state: "free" };
+      }
+
+      function updateIncomingSaveState() {
+        const btn = document.getElementById("inc-submit-btn");
+        const noteEl = document.getElementById("inc-save-note");
+        if (!btn || !noteEl) return;
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+        let disabled = false, note = "";
+        if (target) {
+          const ev = evaluateBatch(target);
+          const freeCount = DOC_LIST.filter(d => incomingDocState(target, d.code).state === "free").length;
+          if (ev.statusLabel === "Released") {
+            disabled = true;
+            note = "Batch sudah Released — dokumen terkunci. Buka Detail Batch untuk Admin Unlock bila perlu.";
+          } else if (freeCount === 0) {
+            disabled = true;
+            note = "Semua dokumen wajib sudah masuk — tidak ada yang perlu dicatat.";
+          }
         }
+        btn.disabled = disabled;
+        noteEl.textContent = note;
+        noteEl.classList.toggle("hidden", !note);
+      }
+
+      function startEditIncomingDocDate(code) {
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+        if (!target || !target.docs[code] || !target.docs[code].receiveTime) return;
+        if (evaluateBatch(target).statusLabel === "Released") {
+          showToast("Batch sudah Released (terkunci). Buka Detail Batch untuk Admin Unlock bila perlu mengubah tanggal.", "error");
+          return;
+        }
+        incomingEditCode = code;
+        document.getElementById("inc-edit-date-code").textContent = `${code} — ${batchLabel(target)}`;
+        document.getElementById("inc-edit-date-input").value = target.docs[code].receiveTime;
+        document.getElementById("inc-edit-date-box").classList.remove("hidden");
+      }
+
+      function cancelEditIncomingDocDate() {
+        incomingEditCode = null;
+        document.getElementById("inc-edit-date-box").classList.add("hidden");
+      }
+
+      function saveEditIncomingDocDate() {
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+        const code = incomingEditCode;
+        if (!target || !code) return;
+        const newDate = normalizeDateStr(document.getElementById("inc-edit-date-input").value);
+        if (!newDate) {
+          showToast("Tanggal terima tidak valid.", "error");
+          return;
+        }
+        const d = target.docs[code];
+        const oldDate = d.receiveTime;
+        if (newDate === oldDate) { cancelEditIncomingDocDate(); return; }
+        if (!window.confirm(`Ubah tanggal terima ${code} pada ${batchLabel(target)}\ndari ${oldDate} menjadi ${newDate}?\n\nIni memengaruhi perhitungan cycle time.`)) return;
+        d.receiveTime = newDate;
+        saveBatches();
+        cancelEditIncomingDocDate();
+        renderDashboard();
         renderIncomingDocChoices();
+        updateIncomingSaveState();
+        showToast(`Tanggal terima ${code} pada ${batchLabel(target)} diubah menjadi ${newDate}.`, "success");
       }
 
       function renderIncomingDocChoices() {
         const wrap = document.getElementById("inc-doc-choices");
-        const hintEl = document.getElementById("inc-existing-hint");
         const captionEl = document.getElementById("inc-doc-caption");
         if (!wrap) return;
-
-        let selectedBatch = null;
-        if (incomingMode === "existing") {
-          const selId = document.getElementById("inc-existing-select").value;
-          selectedBatch = batches.find(b => b.id === selId) || null;
-          if (hintEl) {
-            if (selectedBatch) {
-              const ev = evaluateBatch(selectedBatch);
-              hintEl.textContent = `Status saat ini: ${ev.arrivedCount}/${ev.requiredCount} dokumen wajib sudah masuk.`;
-            } else {
-              hintEl.textContent = "Tidak ada batch aktif — silakan beralih ke '+ Batch Baru'.";
-            }
-          }
-        }
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
 
         wrap.innerHTML = DOC_LIST.map(def => {
-          const isSelected = incomingSelectedDocs.has(def.code);
-          let statusTag = "Baru";
-          if (selectedBatch) {
-            const d = selectedBatch.docs[def.code];
-            if (!d.required) statusTag = "N/A";
-            else if (d.receiveTime) statusTag = "Sudah";
-            else statusTag = "Belum";
-          }
+          const st = incomingDocState(target, def.code);
+          const base = "relative p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition";
 
-          const btnStyle = isSelected
+          if (st.state === "received") {
+            return `
+              <div class="${base} bg-emerald-50 border-emerald-400 text-emerald-800 cursor-default" title="Sudah masuk ${escapeHtml(formatShortDate(st.date))} — terkunci">
+                <span class="text-xs font-extrabold">✓ ${def.code}</span>
+                <span class="text-[10px] font-semibold">${escapeHtml(formatDayMonth(st.date))}</span>
+                <button type="button" onclick="startEditIncomingDocDate('${def.code}')" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-emerald-300 text-[10px] text-emerald-700 hover:bg-emerald-100 leading-none" title="Ubah tanggal terima" aria-label="Ubah tanggal terima ${def.code}">✎</button>
+              </div>`;
+          }
+          if (st.state === "na" || st.state === "locked") {
+            return `
+              <div class="${base} bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed" title="${st.state === "na" ? "Tidak wajib (N/A)" : "Batch Released (terkunci)"}">
+                <span class="text-xs font-extrabold">${def.code}</span>
+                <span class="text-[10px]">${st.state === "na" ? "N/A" : "Terkunci"}</span>
+              </div>`;
+          }
+          const isSelected = incomingSelectedDocs.has(def.code);
+          const style = isSelected
             ? "bg-blue-600 text-white border-blue-600 shadow-xs"
             : "bg-white text-slate-800 border-slate-300 hover:border-blue-400 hover:bg-blue-50";
-
           return `
-            <button type="button" aria-pressed="${isSelected}" onclick="selectIncomingDoc('${def.code}')" class="p-2 rounded-xl border text-center flex flex-col items-center gap-0.5 transition ${btnStyle}">
+            <button type="button" aria-pressed="${isSelected}" onclick="selectIncomingDoc('${def.code}')" class="${base} ${style}">
               <span class="text-xs font-extrabold">${isSelected ? "✓ " : ""}${def.code}</span>
-              <span class="text-[10px] opacity-80">${statusTag}</span>
-            </button>
-          `;
+              <span class="text-[10px] opacity-80">${target ? "Belum" : "Baru"}</span>
+            </button>`;
         }).join("");
 
         if (captionEl) {
@@ -2023,46 +2097,70 @@
         }
       }
 
-      function updateIncomingBetsUi(shouldAutoFillName) {
-        forceUpperInput(document.getElementById("inc-new-bets"));
-        const betsVal = document.getElementById("inc-new-bets").value;
+      let lastIncomingBetsValue = null;
+      function updateIncomingBetsUi(shouldAutoFillName, force) {
+        const betsEl = document.getElementById("inc-new-bets");
+        forceUpperInput(betsEl);
+        const betsVal = betsEl.value.trim();
+        // Hindari menggambar ulang tombol bila isi tidak berubah (mis. event blur/change saat klik tombol dokumen)
+        if (!force && betsVal === lastIncomingBetsValue) return;
+        lastIncomingBetsValue = betsVal;
         const nameInput = document.getElementById("inc-new-name");
         const badgeEl = document.getElementById("inc-bets-detect-badge");
+        const newFields = document.getElementById("inc-new-fields");
         const defWrap = document.getElementById("inc-apply-default-wrap");
         const defLabel = document.getElementById("inc-apply-default-label");
         const presetSel = document.getElementById("inc-product-preset");
 
-        const info = detectBetsPattern(betsVal);
-        if (info.state === "EMPTY") {
+        const target = findBatchByBets(betsVal);
+        incomingTargetBatchId = target ? target.id : null;
+
+        if (!betsVal) {
           badgeEl.classList.add("hidden");
+          newFields.classList.add("hidden");
           defWrap.classList.add("hidden");
           lastAutoDetectedCodeAA = "";
-          return;
-        }
-
-        badgeEl.className = `px-3 py-2 rounded-xl text-xs font-semibold border ${info.badgeClass}`;
-        badgeEl.textContent = info.badgeText;
-        badgeEl.classList.remove("hidden");
-
-        if (info.state === "MATCHED" && info.matchedProduct) {
-          const prod = info.matchedProduct;
-          const currentName = nameInput.value.trim();
-          const codeChanged = lastAutoDetectedCodeAA !== info.aa;
-
-          if (shouldAutoFillName && (codeChanged || !currentName || currentName === lastAutoDetectedName)) {
-            nameInput.value = prod.name;
-            lastAutoDetectedName = prod.name;
-          }
-          lastAutoDetectedCodeAA = info.aa;
-
-          if (presetSel) presetSel.value = prod.id;
-          const docList = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? prod.defaultDocs : ["PP", "KP", "KS", "QC", "MC"];
-          defLabel.textContent = `Terapkan default dokumen wajib produk (${docList.join(", ")})`;
-          defWrap.classList.remove("hidden");
+        } else if (target) {
+          const ev = evaluateBatch(target);
+          const released = ev.statusLabel === "Released";
+          badgeEl.className = `px-3 py-2 rounded-xl text-xs font-semibold border ${released ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-emerald-50 text-emerald-800 border-emerald-200"}`;
+          badgeEl.textContent = `Batch ditemukan: ${target.batchName} — ${ev.arrivedCount}/${ev.requiredCount} dokumen wajib sudah masuk.` + (released ? " Batch sudah Released (terkunci)." : "");
+          badgeEl.classList.remove("hidden");
+          newFields.classList.add("hidden");
+          defWrap.classList.add("hidden");
+          lastAutoDetectedCodeAA = "";
         } else {
-          lastAutoDetectedCodeAA = "";
-          defWrap.classList.add("hidden");
+          const info = detectBetsPattern(betsVal);
+          badgeEl.className = `px-3 py-2 rounded-xl text-xs font-semibold border ${info.badgeClass}`;
+          badgeEl.textContent = info.state === "PARTIAL" ? info.badgeText : `Batch baru — ${info.badgeText}`;
+          badgeEl.classList.remove("hidden");
+          newFields.classList.remove("hidden");
+
+          if (info.state === "MATCHED" && info.matchedProduct) {
+            const prod = info.matchedProduct;
+            const currentName = nameInput.value.trim();
+            const codeChanged = lastAutoDetectedCodeAA !== info.aa;
+            if (shouldAutoFillName && (codeChanged || !currentName || currentName === lastAutoDetectedName)) {
+              nameInput.value = prod.name;
+              lastAutoDetectedName = prod.name;
+            }
+            lastAutoDetectedCodeAA = info.aa;
+            if (presetSel) presetSel.value = prod.id;
+            const docList = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? prod.defaultDocs : ["PP", "KP", "KS", "QC", "MC"];
+            defLabel.textContent = `Terapkan default dokumen wajib produk (${docList.join(", ")})`;
+            defWrap.classList.remove("hidden");
+          } else {
+            lastAutoDetectedCodeAA = "";
+            defWrap.classList.add("hidden");
+          }
         }
+
+        // Dokumen yang tidak bisa dipilih (sudah masuk / N/A / terkunci) dikeluarkan dari pilihan
+        Array.from(incomingSelectedDocs).forEach(c => {
+          if (incomingDocState(target, c).state !== "free") incomingSelectedDocs.delete(c);
+        });
+        renderIncomingDocChoices();
+        updateIncomingSaveState();
       }
 
       function onIncomingBetsOrProductChange(source) {
@@ -2092,59 +2190,64 @@
       }
 
       function selectIncomingDoc(code) {
-        // Klik = pilih / batalkan pilihan (bisa lebih dari satu)
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+        if (incomingDocState(target, code).state !== "free") return;
         if (incomingSelectedDocs.has(code)) incomingSelectedDocs.delete(code);
         else incomingSelectedDocs.add(code);
         renderIncomingDocChoices();
       }
 
       function selectAllIncomingDocs(selectAll) {
-        incomingSelectedDocs = new Set(selectAll ? DOC_LIST.map(d => d.code) : []);
+        const target = incomingTargetBatchId ? batches.find(b => b.id === incomingTargetBatchId) : null;
+        incomingSelectedDocs = new Set(
+          selectAll ? DOC_LIST.map(d => d.code).filter(c => incomingDocState(target, c).state === "free") : []
+        );
         renderIncomingDocChoices();
       }
 
       function submitIncomingDocument() {
         const receiveDate = normalizeDateStr(document.getElementById("inc-receive-date").value);
         const note = (document.getElementById("inc-note").value || "").trim();
+        const betsVal = normalizeBets(document.getElementById("inc-new-bets").value);
 
+        if (!betsVal) {
+          showToast("No. Bets wajib diisi.", "error");
+          return;
+        }
         if (!receiveDate) {
           showToast("Tanggal terima dokumen wajib diisi.", "error");
           return;
         }
 
-        const selectedCodes = DOC_LIST.map(d => d.code).filter(c => incomingSelectedDocs.has(c));
+        const target = findBatchByBets(betsVal);
+        const selectedCodes = DOC_LIST.map(d => d.code)
+          .filter(c => incomingSelectedDocs.has(c) && incomingDocState(target, c).state === "free");
         if (selectedCodes.length === 0) {
-          showToast("Pilih minimal satu dokumen yang masuk.", "error");
+          showToast("Pilih minimal satu dokumen yang belum masuk.", "error");
           return;
         }
         const codesText = selectedCodes.join(", ");
 
-        if (incomingMode === "new") {
-          const newId = (document.getElementById("inc-new-id").value || "").trim();
-          const newBets = normalizeBets(document.getElementById("inc-new-bets").value);
+        if (!target) {
+          // ---- Batch baru ----
+          const newId = (document.getElementById("inc-new-id").value || "").trim() || generateNextBatchId();
           const newName = (document.getElementById("inc-new-name").value || "").trim();
-
-          if (!newId || !newName) {
+          if (!newName) {
             showToast("Nama Produk wajib diisi untuk batch baru.", "error");
             return;
           }
-          if (newBets && batches.some(b => String(b.batchNo || "").trim().toLowerCase() === newBets.toLowerCase())) {
-            showToast(`No. Bets ${newBets} sudah terdaftar. Pilih mode Batch Aktif.`, "error");
-            return;
-          }
 
-          const displayBatchName = newBets ? `${newName} — Bets ${newBets}` : newName;
           const newBatch = {
             id: newId,
-            batchNo: newBets,
+            batchNo: betsVal,
             productName: newName,
-            batchName: displayBatchName,
+            batchName: `${newName} — Bets ${betsVal}`,
             dpjTime: "",
             dpjPic: "",
             docs: createEmptyDocs()
           };
 
-          const det = detectBetsPattern(newBets);
+          const det = detectBetsPattern(betsVal);
           const applyDefCheckbox = document.getElementById("inc-apply-default-docs");
           if (det.state === "MATCHED" && det.matchedProduct && applyDefCheckbox && applyDefCheckbox.checked && Array.isArray(det.matchedProduct.defaultDocs) && det.matchedProduct.defaultDocs.length > 0) {
             const reqSet = new Set(det.matchedProduct.defaultDocs);
@@ -2170,29 +2273,13 @@
           return;
         }
 
-        const existingId = document.getElementById("inc-existing-select").value;
-        const targetBatch = batches.find(b => b.id === existingId);
-        if (!targetBatch) {
-          showToast("Batch aktif tidak ditemukan.", "error");
+        // ---- Batch yang sudah ada (hanya dokumen yang belum masuk) ----
+        if (evaluateBatch(target).statusLabel === "Released") {
+          showToast("Batch sudah Released — dokumen terkunci.", "error");
           return;
         }
-
-        // Jangan menimpa tanggal terima yang sudah tercatat tanpa konfirmasi
-        const conflicts = selectedCodes.filter(c => {
-          const d = targetBatch.docs[c];
-          return d.required && d.receiveTime && d.receiveTime !== receiveDate;
-        });
-        if (conflicts.length > 0) {
-          const list = conflicts.map(c => `${c} (${targetBatch.docs[c].receiveTime})`).join(", ");
-          if (!window.confirm(`Dokumen berikut sudah tercatat tanggal terimanya: ${list}.\nTimpa dengan ${receiveDate}?`)) return;
-        }
-
         selectedCodes.forEach(code => {
-          const docObj = targetBatch.docs[code];
-          if (!docObj.required) {
-            docObj.required = true;
-            docObj.naNote = "";
-          }
+          const docObj = target.docs[code];
           docObj.receiveTime = receiveDate;
           if (note) docObj.arrivalNote = note;
         });
@@ -2201,11 +2288,11 @@
         closeIncomingModal();
         renderDashboard();
 
-        const ev = evaluateBatch(targetBatch);
+        const ev = evaluateBatch(target);
         if (ev.isTodayComplete) {
-          showToast(`Dokumen ${codesText} masuk — Batch ${batchLabel(targetBatch)} LENGKAP pada hari berjalan!`, "success");
+          showToast(`Dokumen ${codesText} masuk — Batch ${batchLabel(target)} LENGKAP pada hari berjalan!`, "success");
         } else {
-          showToast(`Kedatangan dokumen ${codesText} dicatat pada ${batchLabel(targetBatch)}.`, "success");
+          showToast(`Kedatangan dokumen ${codesText} dicatat pada ${batchLabel(target)}.`, "success");
         }
       }
 
@@ -3327,6 +3414,9 @@
       window.setIncomingMode = setIncomingMode;
       window.renderIncomingDocChoices = renderIncomingDocChoices;
       window.selectIncomingDoc = selectIncomingDoc;
+      window.startEditIncomingDocDate = startEditIncomingDocDate;
+      window.cancelEditIncomingDocDate = cancelEditIncomingDocDate;
+      window.saveEditIncomingDocDate = saveEditIncomingDocDate;
       window.renderMasterProductTable = renderMasterProductTable;
       window.importPreview = importPreview;
       window.importCommit = importCommit;
