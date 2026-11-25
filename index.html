@@ -1130,6 +1130,33 @@
         return JSON.parse(JSON.stringify(obj));
       }
 
+      /* ---------- Penyeragaman No. Bets: selalu HURUF KAPITAL ---------- */
+      function normalizeBets(v) {
+        return String(v == null ? "" : v).trim().toUpperCase();
+      }
+      function forceUpperInput(el) {
+        if (!el) return;
+        const v = el.value, u = v.toUpperCase();
+        if (v !== u) {
+          const st = el.selectionStart, en = el.selectionEnd;
+          el.value = u;
+          try { el.setSelectionRange(st, en); } catch (e) {}
+        }
+      }
+      // Mengembalikan true bila ada data yang diubah
+      function normalizeAllBatches(arr) {
+        let changed = false;
+        (arr || []).forEach(b => {
+          if (!b) return;
+          if (b.batchNo && b.batchNo !== normalizeBets(b.batchNo)) { b.batchNo = normalizeBets(b.batchNo); changed = true; }
+          if (typeof b.batchName === "string") {
+            const nn = b.batchName.replace(/( — Bets )(.+)$/, (m, a, c) => a + c.trim().toUpperCase());
+            if (nn !== b.batchName) { b.batchName = nn; changed = true; }
+          }
+        });
+        return changed;
+      }
+
       function loadBatches() {
         try {
           const raw = window.localStorage ? window.localStorage.getItem(STORAGE_KEY) : null;
@@ -1145,6 +1172,7 @@
             return;
           }
           batches = parsed;
+          if (normalizeAllBatches(batches)) saveBatches();
         } catch (err) {
           batches = Array.isArray(memoryFallback) && memoryFallback.length > 0
             ? cloneObj(memoryFallback)
@@ -1996,6 +2024,7 @@
       }
 
       function updateIncomingBetsUi(shouldAutoFillName) {
+        forceUpperInput(document.getElementById("inc-new-bets"));
         const betsVal = document.getElementById("inc-new-bets").value;
         const nameInput = document.getElementById("inc-new-name");
         const badgeEl = document.getElementById("inc-bets-detect-badge");
@@ -2092,7 +2121,7 @@
 
         if (incomingMode === "new") {
           const newId = (document.getElementById("inc-new-id").value || "").trim();
-          const newBets = (document.getElementById("inc-new-bets").value || "").trim();
+          const newBets = normalizeBets(document.getElementById("inc-new-bets").value);
           const newName = (document.getElementById("inc-new-name").value || "").trim();
 
           if (!newId || !newName) {
@@ -2469,6 +2498,8 @@
 
       function onBatchModalBetsInput(val) {
         if (!formDraft) return;
+        forceUpperInput(document.getElementById("bm-batch-no"));
+        val = String(val || "").toUpperCase();
         formDraft.batchNo = val;
         const det = detectBetsPattern(val);
         if (det.state === "MATCHED" && det.matchedProduct) {
@@ -2533,7 +2564,7 @@
         const derivedProductName = formDraft.productName || String(formDraft.batchName || "").split(" — Bets ")[0] || "";
         const derivedBatchNo = formDraft.batchNo || (String(formDraft.batchName || "").split(" — Bets ")[1] || "");
         formDraft.productName = derivedProductName;
-        formDraft.batchNo = derivedBatchNo;
+        formDraft.batchNo = normalizeBets(derivedBatchNo);
 
         idInput.value = formDraft.id || "";
         betsInput.value = formDraft.batchNo || "";
@@ -2646,7 +2677,7 @@
       function onDraftDocRequired(code, isReq) {
         if (!formDraft) return;
         formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
         formDraft.docs[code].required = Boolean(isReq);
@@ -2663,7 +2694,7 @@
       function onDraftDocField(code, field, val) {
         if (!formDraft) return;
         formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
         const d = formDraft.docs[code];
@@ -2714,7 +2745,7 @@
       function saveBatchProgress() {
         if (!formDraft) return;
         formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
 
@@ -2751,7 +2782,7 @@
       function executeSaveDpj() {
         if (!formDraft) return;
         formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchNo = document.getElementById("bm-batch-no").value.trim();
+        formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
         formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
@@ -3349,10 +3380,12 @@
         getProducts: function () { return cloneObj(masterProducts); },
         toast: function (msg, type) { showToast(msg, type); },
         applyRemoteBatches: function (arr) {
+          const changed = normalizeAllBatches(arr);   // seragamkan data lama dari cloud
           batches = arr;
           memoryFallback = cloneObj(batches);
           try { if (window.localStorage) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(batches)); } catch (e) {}
           renderDashboard();
+          if (changed) saveBatches();                // kirim versi seragam kembali ke cloud
         },
         applyRemoteProducts: function (arr) {
           masterProducts = arr;
