@@ -142,9 +142,12 @@
             <div>
               <div class="flex items-center justify-between mb-1">
                 <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk</label>
+                <span class="inline-flex items-center gap-1">
+                <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="cari produk…" class="text-[11px] w-24 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
                 <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 focus:outline-none">
                   <option value="">-- Pilih dari Master Produk --</option>
                 </select>
+                </span>
               </div>
               <input type="text" id="inc-new-name" oninput="onIncomingBetsOrProductChange('name')" placeholder="Otomatis terisi jika kode AA cocok, atau ketik/pilih Nama Produk" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
@@ -253,9 +256,12 @@
           <div>
             <div class="flex items-center justify-between mb-1">
               <label for="bm-batch-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
+              <span class="inline-flex items-center gap-1">
+              <input type="search" id="bm-preset-search" oninput="filterProductPreset('bm-product-preset', this.value)" placeholder="cari…" class="text-[11px] w-20 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
               <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-1.5 py-0.5 focus:outline-none">
                 <option value="">Master</option>
               </select>
+              </span>
             </div>
             <input type="text" id="bm-batch-name" oninput="onBatchModalNameInput(this.value)" placeholder="Contoh: Paracetamol 500mg Tablet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
@@ -325,10 +331,14 @@
             <button type="button" onclick="resetMasterProductForm()" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Bersihkan Form</button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
               <label for="mp-code-aa" class="block text-xs font-bold text-slate-700 mb-1">Kode Produk AA (Opsional, 2 Karakter)</label>
-              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 atau AB (kosongkan jika non-AABBC)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+              <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 / AB" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+            <div>
+              <label for="mp-other-code" class="block text-xs font-bold text-slate-700 mb-1">Kode Lain (Opsional)</label>
+              <input type="text" id="mp-other-code" placeholder="Kode bukan 2 karakter" title="Hanya sebagai referensi; tidak dipakai untuk deteksi No. Bets" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
             <div class="sm:col-span-2">
               <label for="mp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
@@ -346,11 +356,31 @@
           </div>
         </form>
 
+        <!-- Impor Massal -->
+        <details id="imp-details" class="border border-slate-200 rounded-2xl bg-white">
+          <summary class="cursor-pointer px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-slate-800">Impor Massal dari Excel / CSV</summary>
+          <div class="px-4 pb-4 flex flex-col gap-3">
+            <p class="text-xs text-slate-500 leading-relaxed">Di Excel, blok kolom <b>Kode Product</b> dan <b>Nama Produk</b> (sertakan baris judul), lalu <b>Copy</b> dan <b>Paste</b> di kotak bawah. Atau unggah file .xlsx / .csv. Kode <b>2 karakter</b> menjadi Kode AA (dipakai deteksi No. Bets); kode dengan panjang lain disimpan sebagai <b>Kode Lain</b> dan tidak dipakai untuk No. Bets. Produk baru memakai centang <i>Default Dokumen Wajib</i> pada form di atas.</p>
+            <textarea id="imp-text" rows="5" oninput="importTextEdited()" placeholder="Kode Product&#9;Nama Produk&#10;I8&#9;A-B VASK 10 TABLET&#10;I7&#9;A-B VASK 5 TABLET" class="w-full px-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600"></textarea>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.tsv,.txt" onchange="importFileChosen(this)" class="text-xs" />
+              <label class="text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">Jika kode sudah ada:
+                <select id="imp-conflict" onchange="importConflictChanged()" class="text-xs border border-slate-300 rounded-lg px-2 py-1 bg-white">
+                  <option value="skip">Lewati</option>
+                  <option value="update">Perbarui nama</option>
+                </select>
+              </label>
+              <button type="button" onclick="importPreview()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-white hover:bg-slate-900 transition">Baca &amp; Pratinjau</button>
+            </div>
+            <div id="imp-preview" class="hidden flex flex-col gap-2"></div>
+          </div>
+        </details>
+
         <!-- Product List Table -->
         <div class="border border-slate-200 rounded-2xl overflow-hidden">
-          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
             <span class="text-xs font-bold text-slate-700">Daftar Master Produk (<span id="mp-count-label">0</span>)</span>
-            <span class="text-[11px] text-slate-500">Pencocokan kode AA tidak sensitif huruf besar/kecil</span>
+            <input type="search" id="mp-search" oninput="renderMasterProductTable()" placeholder="Cari kode atau nama produk…" class="text-xs px-3 py-1.5 w-56 max-w-full bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/25" />
           </div>
           <div class="overflow-x-auto table-scroll">
             <table class="w-full text-left border-collapse">
@@ -1051,14 +1081,34 @@
         };
       }
 
-      function populateProductPresetSelect(selectEl, includePlaceholder) {
+      function productTag(p) {
+        if (p.codeAA) return `[${escapeHtml(String(p.codeAA).toUpperCase())}] `;
+        if (p.otherCode) return `[${escapeHtml(String(p.otherCode).toUpperCase())}] `;
+        return "[Non-AA] ";
+      }
+      function productMatchesQuery(p, q) {
+        if (!q) return true;
+        const hay = `${p.codeAA || ""} ${p.otherCode || ""} ${p.name || ""}`.toLowerCase();
+        return q.toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.includes(t));
+      }
+      function populateProductPresetSelect(selectEl, includePlaceholder, query) {
         if (!selectEl) return;
-        const firstOpt = includePlaceholder ? `<option value="">-- Pilih dari Master Produk --</option>` : `<option value="">Master</option>`;
-        const opts = masterProducts.map(p => {
-          const aaTag = p.codeAA ? `[${escapeHtml(String(p.codeAA).toUpperCase())}] ` : "[Non-AA] ";
-          return `<option value="${escapeHtml(p.id)}">${aaTag}${escapeHtml(p.name)}</option>`;
-        }).join("");
+        const q = String(query || "").trim();
+        if (query === undefined) {
+          const searchEl = document.getElementById(selectEl.id.replace("product-preset", "preset-search"));
+          if (searchEl) searchEl.value = "";
+        }
+        const list = masterProducts.filter(p => productMatchesQuery(p, q));
+        const baseLabel = includePlaceholder ? "-- Pilih dari Master Produk --" : "Master";
+        const firstOpt = `<option value="">${q ? `${list.length} produk cocok` : baseLabel}</option>`;
+        const opts = list.slice(0, 300).map(p =>
+          `<option value="${escapeHtml(p.id)}">${productTag(p)}${escapeHtml(p.name)}</option>`
+        ).join("");
         selectEl.innerHTML = firstOpt + opts;
+      }
+      function filterProductPreset(selectId, query) {
+        const sel = document.getElementById(selectId);
+        populateProductPresetSelect(sel, selectId.startsWith("inc"), query);
       }
 
       /* =====================================================================
@@ -2874,6 +2924,7 @@
         draftDefaultDocs = ["PP", "KP", "KS", "QC", "MC"];
         document.getElementById("mp-form-title").textContent = "Tambah Produk ke Master";
         document.getElementById("mp-code-aa").value = "";
+        document.getElementById("mp-other-code").value = "";
         document.getElementById("mp-name").value = "";
         document.getElementById("mp-submit-btn").textContent = "Simpan Produk";
         renderMasterDefaultDocCheckboxes();
@@ -2908,6 +2959,7 @@
         draftDefaultDocs = Array.isArray(prod.defaultDocs) && prod.defaultDocs.length ? cloneObj(prod.defaultDocs) : ["PP", "KP", "KS", "QC", "MC"];
         document.getElementById("mp-form-title").textContent = `Edit Produk — ${prod.name}`;
         document.getElementById("mp-code-aa").value = prod.codeAA || "";
+        document.getElementById("mp-other-code").value = prod.otherCode || "";
         document.getElementById("mp-name").value = prod.name || "";
         document.getElementById("mp-submit-btn").textContent = "Perbarui Produk";
         renderMasterDefaultDocCheckboxes();
@@ -2922,10 +2974,216 @@
         showToast("Produk dihapus dari Master Produk.", "success");
       }
 
+
+      /* ===================== IMPOR MASSAL MASTER PRODUK ===================== */
+      let importRawRows = null;   // baris dari file .xlsx (array of array)
+      let importPlan = null;      // hasil pratinjau
+
+      function parseDelimited(text) {
+        text = String(text || "").replace(/^\uFEFF/, "");
+        const firstLine = text.split(/\r?\n/)[0] || "";
+        const delim = text.includes("\t") ? "\t"
+          : ((firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ";" : ",");
+        const rows = [];
+        let row = [], cell = "", inQ = false;
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          if (inQ) {
+            if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+            else cell += ch;
+          } else if (ch === '"' && cell === "") {
+            inQ = true;
+          } else if (ch === delim) {
+            row.push(cell); cell = "";
+          } else if (ch === "\n" || ch === "\r") {
+            if (ch === "\r" && text[i + 1] === "\n") i++;
+            row.push(cell); cell = ""; rows.push(row); row = [];
+          } else cell += ch;
+        }
+        if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+        return rows;
+      }
+
+      function buildImportPlan(rawRows, conflictMode) {
+        const clean = (v) => String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+        const rows = rawRows.filter(r => r.some(c => clean(c) !== ""));
+        if (rows.length === 0) return { error: "Tidak ada data. Tempel data dari Excel atau pilih file dulu." };
+
+        let codeIdx = -1, nameIdx = -1, start = 0;
+        const head = rows[0].map(c => clean(c).toLowerCase());
+        const hc = head.findIndex(h => /kode/.test(h));
+        const hn = head.findIndex(h => /nama/.test(h));
+        if (hc >= 0 && hn >= 0) { codeIdx = hc; nameIdx = hn; start = 1; }
+        else {
+          const cols = Math.max.apply(null, rows.map(r => r.length));
+          if (cols >= 3 && rows.slice(0, 20).every(r => /^\d+$/.test(clean(r[0])))) { codeIdx = 1; nameIdx = 2; }
+          else if (cols >= 2) { codeIdx = 0; nameIdx = 1; }
+          else return { error: "Butuh minimal 2 kolom: Kode Product dan Nama Produk. Sertakan baris judul agar kolom terbaca otomatis." };
+        }
+
+        const byAA = new Map(), byOther = new Map(), byNameNonAA = new Map();
+        masterProducts.forEach(p => {
+          if (p.codeAA) byAA.set(String(p.codeAA).toUpperCase(), p);
+          else {
+            if (p.otherCode) byOther.set(String(p.otherCode).toUpperCase(), p);
+            byNameNonAA.set(String(p.name || "").toLowerCase(), p);
+          }
+        });
+        const seenAA = new Map(), seenOther = new Set();
+        const plan = [];
+
+        for (let i = start; i < rows.length; i++) {
+          const code = clean(rows[i][codeIdx]);
+          const name = clean(rows[i][nameIdx]);
+          const item = { n: i + 1, code, name, aa: "", other: "", status: "", note: "", targetId: "" };
+          if (!name) { item.status = "skip"; item.note = "Nama kosong"; plan.push(item); continue; }
+
+          if (code.length === 2) item.aa = code.toUpperCase();
+          else if (code) item.other = code.toUpperCase();
+
+          if (item.aa) {
+            if (seenAA.has(item.aa)) {
+              item.status = "skip";
+              item.note = seenAA.get(item.aa).toLowerCase() === name.toLowerCase() ? "Duplikat di file (sama)" : `Kode ${item.aa} kembar di file dengan nama berbeda — baris pertama dipakai`;
+              plan.push(item); continue;
+            }
+            seenAA.set(item.aa, name);
+            const ex = byAA.get(item.aa);
+            if (!ex) { item.status = "new"; item.note = "Produk baru (Kode AA)"; }
+            else if (String(ex.name).toLowerCase() === name.toLowerCase()) { item.status = "same"; item.note = "Sudah ada, nama sama"; }
+            else if (conflictMode === "update") { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui nama (sebelumnya: ${ex.name})`; }
+            else { item.status = "skip"; item.note = `Kode sudah dipakai: ${ex.name} (dilewati)`; }
+          } else {
+            const key = (item.other || "") + "|" + name.toLowerCase();
+            if (seenOther.has(key)) { item.status = "skip"; item.note = "Duplikat di file"; plan.push(item); continue; }
+            seenOther.add(key);
+            const ex = item.other ? byOther.get(item.other) : byNameNonAA.get(name.toLowerCase());
+            if (!ex) { item.status = "new"; item.note = item.other ? "Produk baru — Kode Lain (bukan 2 karakter, tidak masuk No. Bets)" : "Produk baru tanpa kode"; }
+            else if (String(ex.name).toLowerCase() === name.toLowerCase()) { item.status = "same"; item.note = "Sudah ada, nama sama"; }
+            else if (conflictMode === "update") { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui nama (sebelumnya: ${ex.name})`; }
+            else { item.status = "skip"; item.note = `Kode lain sudah dipakai: ${ex.name} (dilewati)`; }
+          }
+          plan.push(item);
+        }
+        return { plan };
+      }
+
+      function importPreview() {
+        const box = document.getElementById("imp-preview");
+        const mode = document.getElementById("imp-conflict").value;
+        const raw = importRawRows || parseDelimited(document.getElementById("imp-text").value);
+        const res = buildImportPlan(raw, mode);
+        box.classList.remove("hidden");
+        if (res.error) {
+          importPlan = null;
+          box.innerHTML = `<div class="px-3 py-2 rounded-xl text-xs font-semibold border bg-red-50 border-red-200 text-red-700">${escapeHtml(res.error)}</div>`;
+          return;
+        }
+        importPlan = res.plan;
+        const c = { new: 0, update: 0, same: 0, skip: 0 };
+        importPlan.forEach(r => { c[r.status]++; });
+        const chip = (cls, t) => `<span class="px-2 py-1 rounded-lg border text-[11px] font-bold ${cls}">${t}</span>`;
+        const stCls = { new: "bg-emerald-50 text-emerald-700 border-emerald-200", update: "bg-blue-50 text-blue-700 border-blue-200", same: "bg-slate-100 text-slate-600 border-slate-200", skip: "bg-amber-50 text-amber-800 border-amber-200" };
+        const stLbl = { new: "Baru", update: "Perbarui", same: "Sama", skip: "Dilewati" };
+        const LIMIT = 200;
+        const rowsHtml = importPlan.slice(0, LIMIT).map(r => `
+          <tr>
+            <td class="py-1.5 px-2 text-slate-400">${r.n}</td>
+            <td class="py-1.5 px-2 font-bold whitespace-nowrap">${escapeHtml(r.code || "—")}</td>
+            <td class="py-1.5 px-2">${escapeHtml(r.name || "—")}</td>
+            <td class="py-1.5 px-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded-md border text-[10px] font-bold ${stCls[r.status]}">${stLbl[r.status]}</span></td>
+            <td class="py-1.5 px-2 text-slate-500">${escapeHtml(r.note)}</td>
+          </tr>`).join("");
+        const importable = c.new + c.update;
+        box.innerHTML = `
+          <div class="flex flex-wrap gap-1.5">
+            ${chip(stCls.new, `${c.new} baru`)} ${chip(stCls.update, `${c.update} diperbarui`)} ${chip(stCls.same, `${c.same} sudah ada`)} ${chip(stCls.skip, `${c.skip} dilewati`)}
+          </div>
+          <div class="max-h-64 overflow-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left text-[11px]">
+              <thead class="bg-slate-50 text-slate-500 uppercase sticky top-0"><tr><th class="py-1.5 px-2">Baris</th><th class="py-1.5 px-2">Kode</th><th class="py-1.5 px-2">Nama Produk</th><th class="py-1.5 px-2">Status</th><th class="py-1.5 px-2">Keterangan</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
+            </table>
+            ${importPlan.length > LIMIT ? `<div class="py-2 text-center text-[11px] text-slate-500 bg-slate-50">…dan ${importPlan.length - LIMIT} baris lainnya (semua tetap diproses).</div>` : ""}
+          </div>
+          <div class="flex justify-end">
+            <button type="button" onclick="importCommit()" ${importable ? "" : "disabled"} class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Impor ${importable} Produk</button>
+          </div>`;
+      }
+
+      function importCommit() {
+        if (!importPlan) return;
+        const docs = draftDefaultDocs.length ? draftDefaultDocs.slice() : ["PP", "KP", "KS", "QC", "MC"];
+        let added = 0, updated = 0;
+        importPlan.forEach((r, i) => {
+          if (r.status === "new") {
+            const prod = {
+              id: `prod-${Date.now().toString(36)}-${i}-${Math.random().toString(36).slice(2, 5)}`,
+              codeAA: r.aa,
+              name: r.name,
+              defaultDocs: docs.slice()
+            };
+            if (r.other) prod.otherCode = r.other;
+            masterProducts.push(prod);
+            added++;
+          } else if (r.status === "update") {
+            const prod = masterProducts.find(x => x.id === r.targetId);
+            if (prod) { prod.name = r.name; if (r.other) prod.otherCode = r.other; updated++; }
+          }
+        });
+        saveProducts();
+        importPlan = null; importRawRows = null;
+        document.getElementById("imp-text").value = "";
+        document.getElementById("imp-file").value = "";
+        document.getElementById("imp-preview").classList.add("hidden");
+        renderMasterProductTable();
+        showToast(`Impor selesai: ${added} produk baru, ${updated} diperbarui.`, "success");
+      }
+
+      function importTextEdited() { importRawRows = null; }
+      function importConflictChanged() { if (importPlan) importPreview(); }
+
+      function importFileChosen(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const name = file.name.toLowerCase();
+        const reader = new FileReader();
+        if (/\.(xlsx|xls)$/.test(name)) {
+          reader.onload = async () => {
+            try {
+              if (!window.XLSX) {
+                await new Promise((resolve, reject) => {
+                  const sc = document.createElement("script");
+                  sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+                  sc.onload = resolve; sc.onerror = () => reject(new Error("Pustaka Excel gagal dimuat (perlu internet)."));
+                  document.head.appendChild(sc);
+                });
+              }
+              const wb = window.XLSX.read(reader.result, { type: "array" });
+              const ws = wb.Sheets[wb.SheetNames[0]];
+              importRawRows = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+              document.getElementById("imp-text").value = "";
+              importPreview();
+            } catch (err) {
+              showToast("Gagal membaca file Excel: " + err.message + " Alternatif: Copy-Paste dari Excel.", "error");
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        } else {
+          reader.onload = () => {
+            importRawRows = null;
+            document.getElementById("imp-text").value = String(reader.result || "");
+            importPreview();
+          };
+          reader.readAsText(file);
+        }
+      }
+
       function saveMasterProduct(ev) {
         if (ev) ev.preventDefault();
         const codeAA = (document.getElementById("mp-code-aa").value || "").trim().toUpperCase();
         const name = (document.getElementById("mp-name").value || "").trim();
+        const otherCode = (document.getElementById("mp-other-code").value || "").trim().toUpperCase();
 
         if (!name) {
           showToast("Nama Produk wajib diisi.", "error");
@@ -2949,15 +3207,18 @@
           const idx = masterProducts.findIndex(p => p.id === editingProductId);
           if (idx !== -1) {
             masterProducts[idx] = { id: editingProductId, codeAA, name, defaultDocs: docsToSave };
+            if (otherCode) masterProducts[idx].otherCode = otherCode;
           }
           showToast(`Master produk "${name}" diperbarui.`, "success");
         } else {
-          masterProducts.unshift({
+          const newProd = {
             id: `prod-${Date.now()}`,
             codeAA,
             name,
             defaultDocs: docsToSave
-          });
+          };
+          if (otherCode) newProd.otherCode = otherCode;
+          masterProducts.unshift(newProd);
           showToast(`Produk "${name}" ditambahkan ke Master Produk.`, "success");
         }
 
@@ -2967,21 +3228,33 @@
         renderIncomingDocChoices();
       }
 
+      const MP_RENDER_LIMIT = 100;
       function renderMasterProductTable() {
         const tbody = document.getElementById("mp-tbody");
         const countLabel = document.getElementById("mp-count-label");
         if (!tbody) return;
         if (countLabel) countLabel.textContent = String(masterProducts.length);
 
+        const qEl = document.getElementById("mp-search");
+        const q = qEl ? qEl.value.trim() : "";
+        const filtered = masterProducts.filter(p => productMatchesQuery(p, q));
+
         if (masterProducts.length === 0) {
           tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada produk di Master Produk.</td></tr>`;
           return;
         }
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>`;
+          return;
+        }
 
-        tbody.innerHTML = masterProducts.map(p => {
+        const shown = filtered.slice(0, MP_RENDER_LIMIT);
+        const rowsHtml = shown.map(p => {
           const aaBadge = p.codeAA
             ? `<span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-extrabold">${escapeHtml(String(p.codeAA).toUpperCase())}</span>`
-            : `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold">Opsional / Non-AA</span>`;
+            : (p.otherCode
+                ? `<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-bold" title="Kode lain: tidak dipakai untuk deteksi No. Bets">${escapeHtml(String(p.otherCode).toUpperCase())}</span>`
+                : `<span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold">Non-AA</span>`);
 
           const docsBadges = (Array.isArray(p.defaultDocs) ? p.defaultDocs : ["PP", "KP", "KS", "QC", "MC"])
             .map(c => `<span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">${escapeHtml(c)}</span>`)
@@ -2999,8 +3272,11 @@
             </tr>
           `;
         }).join("");
+        const moreRow = filtered.length > shown.length
+          ? `<tr><td colspan="4" class="py-3 px-4 text-center text-[11px] text-slate-500 bg-slate-50">Menampilkan ${shown.length} dari ${filtered.length} produk — gunakan kotak pencarian untuk mempersempit.</td></tr>`
+          : "";
+        tbody.innerHTML = rowsHtml + moreRow;
       }
-
       /* =====================================================================
          13. GLOBAL EXPORTS & BOOTSTRAP
          ===================================================================== */
@@ -3020,6 +3296,13 @@
       window.setIncomingMode = setIncomingMode;
       window.renderIncomingDocChoices = renderIncomingDocChoices;
       window.selectIncomingDoc = selectIncomingDoc;
+      window.renderMasterProductTable = renderMasterProductTable;
+      window.importPreview = importPreview;
+      window.importCommit = importCommit;
+      window.importFileChosen = importFileChosen;
+      window.importTextEdited = importTextEdited;
+      window.importConflictChanged = importConflictChanged;
+      window.filterProductPreset = filterProductPreset;
       window.selectAllIncomingDocs = selectAllIncomingDocs;
       window.submitIncomingDocument = submitIncomingDocument;
       window.onIncomingBetsOrProductChange = onIncomingBetsOrProductChange;
