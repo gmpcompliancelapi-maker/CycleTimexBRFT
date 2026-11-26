@@ -1005,6 +1005,33 @@
       let lastAutoDetectedCodeAA = "";
 
 
+      /* ===================== PERBAIKAN BRFT (baca-saja, dari koleksi brft_repairs) ===================== */
+      let brftRepairs = [];
+
+      function brftSummaryFor(batch) {
+        const label = normalizeBets(batchLabel(batch));
+        const rel = brftRepairs.filter(r =>
+          (r.batchId && batch.id && r.batchId === batch.id) ||
+          (label && normalizeBets(r.bets) === label)
+        );
+        return { total: rel.length, open: rel.filter(r => r.st === "Open").length };
+      }
+
+      function brftBadgeHtml(batch) {
+        const sm = brftSummaryFor(batch);
+        if (sm.total === 0) return "";
+        return sm.open > 0
+          ? `<span class="ml-1.5 px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold" title="Perbaikan BRFT: ${sm.total} item, ${sm.open} masih Open">BRFT ${sm.open} open</span>`
+          : `<span class="ml-1.5 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold" title="Perbaikan BRFT: ${sm.total} item, semuanya sudah kembali">BRFT ${sm.total} ✓</span>`;
+      }
+
+      // Peringatan (tidak memblokir) bila masih ada perbaikan BRFT berstatus Open saat Save DPJ
+      function confirmOpenBrft(batch) {
+        const sm = brftSummaryFor(batch);
+        if (sm.open === 0) return true;
+        return window.confirm(`Batch ${batchLabel(batch)} masih punya ${sm.open} perbaikan BRFT berstatus Open (belum kembali).\n\nTetap lanjutkan Save DPJ (rilis)?`);
+      }
+
       /* ===================== MASTER PERSONEL (First Check / Second Check / Save DPJ) ===================== */
       const PERSONNEL_STORAGE_KEY = "ct_master_personel_v1";
       // Isi dengan email admin untuk membatasi siapa yang boleh mengubah Master Personel.
@@ -2073,7 +2100,7 @@
           return `
             <tr class="hover:bg-slate-50/90 transition">
               <td class="${cellPad} align-middle">
-                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batchLabel(batch))}${todayChip}</div>
+                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batchLabel(batch))}${todayChip}${brftBadgeHtml(batch)}</div>
                 <div class="text-xs text-slate-600 max-w-xs truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
                 ${detailSub}
               </td>
@@ -3283,6 +3310,7 @@
           }
           formDraft.dpjPic = "SPV / Officer";
         }
+        if (!confirmOpenBrft(formDraft)) return;
 
         if (ev.maxSecondCheckTime && diffDays(ev.maxSecondCheckTime, formDraft.dpjTime) < 0) {
           showToast(`Tanggal Save DPJ (${formDraft.dpjTime}) tidak boleh lebih awal dari 2nd Check terakhir (${ev.maxSecondCheckTime}).`, "error");
@@ -3322,6 +3350,7 @@
           openBatchModal(batch.id);
           return;
         }
+        if (!confirmOpenBrft(batch)) return;
         batch.dpjTime = todayVal;
         if (!batch.dpjPic) batch.dpjPic = "SPV / Officer";
         saveBatches();
@@ -3844,6 +3873,7 @@
         getBatches: function () { return cloneObj(batches); },
         getProducts: function () { return cloneObj(masterProducts); },
         getPersonnel: function () { return cloneObj(masterPersonnel); },
+        setBrftRepairs: function (arr) { brftRepairs = Array.isArray(arr) ? arr : []; renderDashboard(); },
         applyRemotePersonnel: function (arr) {
           masterPersonnel = arr;
           personnelMemoryFallback = cloneObj(masterPersonnel);
@@ -4133,6 +4163,14 @@
       createSync("batches",  "b_", bridge.getBatches,  bridge.applyRemoteBatches,  "onBatchesSaved");
       createSync("products", "p_", bridge.getProducts, bridge.applyRemoteProducts, "onProductsSaved");
       createSync("personnel", "s_", bridge.getPersonnel, bridge.applyRemotePersonnel, "onPersonnelSaved");
+
+      // Baca-saja: perbaikan dari aplikasi BRFT (tidak memengaruhi status sinkronisasi bila aturan belum dibuka)
+      try {
+        onSnapshot(collection(db, "workspaces", "main", "brft_repairs"), (snap) => {
+          const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          if (window.__ctSync && window.__ctSync.setBrftRepairs) window.__ctSync.setBrftRepairs(arr);
+        }, (err) => console.warn("Perbaikan BRFT tidak dapat dibaca:", err && err.code));
+      } catch (e) { console.warn(e); }
     }
 
     // PWA: service worker
