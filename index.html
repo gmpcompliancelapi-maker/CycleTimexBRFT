@@ -161,9 +161,10 @@
           <p class="mt-1 text-[11px] text-slate-500"><span class="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1"></span>sudah masuk (terkunci; ✎ ubah tanggal)<span class="inline-block w-2 h-2 rounded-sm bg-blue-600 mr-1 ml-3"></span>dipilih<span class="inline-block w-2 h-2 rounded-sm bg-slate-300 mr-1 ml-3"></span>N/A</p>
           <p id="inc-save-note" class="hidden mt-2 text-xs font-semibold text-amber-700"></p>
           <div id="inc-edit-date-box" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50">
-            <div class="text-xs font-bold text-amber-900 mb-1.5">Ubah tanggal terima <span id="inc-edit-date-code"></span></div>
+            <div class="text-xs font-bold text-amber-900 mb-1.5">Ubah tanggal &amp; jam terima <span id="inc-edit-date-code"></span></div>
             <div class="flex flex-wrap items-center gap-2">
               <input type="date" id="inc-edit-date-input" class="px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
+              <input type="time" id="inc-edit-time-input" aria-label="Jam datang" class="px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
               <button type="button" onclick="saveEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Simpan Perubahan</button>
               <button type="button" onclick="cancelEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition">Batal</button>
             </div>
@@ -174,9 +175,13 @@
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label for="inc-receive-date" class="text-xs font-bold text-slate-700 uppercase tracking-wider">3. Tanggal Terima Dokumen</label>
-            <button type="button" onclick="setInputActiveDate('inc-receive-date')" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Gunakan Tanggal Berjalan</button>
+            <button type="button" onclick="setInputActiveDate('inc-receive-date'); onIncomingDateChange()" class="text-xs font-semibold text-blue-600 hover:text-blue-800">Gunakan Tanggal Berjalan</button>
           </div>
-          <input type="date" id="inc-receive-date" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+          <div class="flex gap-2">
+            <input type="date" id="inc-receive-date" onchange="onIncomingDateChange()" class="flex-1 min-w-0 px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            <input type="time" id="inc-receive-time" oninput="onIncomingTimeInput()" aria-label="Jam datang dokumen" title="Jam datang (opsional)" class="w-32 px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+          </div>
+          <p class="mt-1 text-[11px] text-slate-500">Jam datang opsional. Terisi otomatis jika tanggalnya hari ini; dicatat saja dan belum ditampilkan di dashboard.</p>
         </div>
 
         <!-- Optional Note -->
@@ -289,7 +294,7 @@
             </div>
             <div>
               <label for="bm-dpj-pic" class="block text-xs font-bold text-slate-700 mb-1">Nama SPV / Officer (Save DPJ)</label>
-              <input type="text" id="bm-dpj-pic" oninput="onDraftDpjChange('dpjPic', this.value)" placeholder="Contoh: Budi Santoso (SPV)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
+              <select id="bm-dpj-pic" onchange="onDraftDpjChange('dpjPic', this.value)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500"></select>
             </div>
           </div>
         </div>
@@ -315,13 +320,19 @@
     <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
       <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
         <div>
-          <h3 id="master-modal-title" class="text-base font-bold">Master Produk & Deteksi Kode AABBC</h3>
-          <p class="text-xs text-slate-300 mt-0.5">Kode 2 karakter awal (<b>AA</b>) bersifat opsional; produk non-AABBC tetap bebas diinput dengan nama produk</p>
+          <h3 id="master-modal-title" class="text-base font-bold">Master Data</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Kelola daftar Produk (kode AA) dan Personel (First Check, Second Check, Save DPJ)</p>
         </div>
         <button type="button" onclick="closeMasterModal()" class="text-slate-300 hover:text-white text-xl leading-none px-2 py-1 rounded-lg" aria-label="Tutup modal">&times;</button>
       </div>
 
+      <div class="px-5 pt-3 bg-white border-b border-slate-200 flex gap-1" role="tablist">
+        <button type="button" id="md-tab-products-btn" role="tab" onclick="setMasterTab('products')" class="px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-blue-600 text-blue-700">Produk</button>
+        <button type="button" id="md-tab-personnel-btn" role="tab" onclick="setMasterTab('personnel')" class="px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800">Personel <span id="md-personnel-count" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-[10px]">0</span></button>
+      </div>
+
       <div class="p-5 overflow-y-auto flex flex-col gap-5">
+       <div id="md-tab-products" class="space-y-5 shrink-0">
         <!-- Add / Edit Product Form -->
         <form id="master-product-form" onsubmit="saveMasterProduct(event)" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shrink-0">
           <div class="flex items-center justify-between">
@@ -394,6 +405,56 @@
             </table>
           </div>
         </div>
+       </div>
+
+       <!-- TAB PERSONEL -->
+       <div id="md-tab-personnel" class="hidden space-y-5 shrink-0">
+        <p id="pp-admin-note" class="hidden px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800"></p>
+        <form id="pp-form" onsubmit="saveMasterPerson(event)" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 shrink-0">
+          <div class="flex items-center justify-between">
+            <h4 id="pp-form-title" class="text-xs font-extrabold uppercase tracking-wider text-slate-800">Tambah Personel</h4>
+            <button type="button" onclick="resetPersonForm()" class="text-[11px] font-semibold text-slate-500 hover:text-slate-800">Bersihkan Form</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="pp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama <span class="text-red-600">*</span></label>
+              <input type="text" id="pp-name" autocomplete="off" placeholder="Contoh: Rina" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+            <div>
+              <span class="block text-xs font-bold text-slate-700 mb-1">Peran</span>
+              <div class="flex flex-col gap-1.5">
+                <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="pp-role-first" checked class="rounded border-slate-300 text-blue-600" /> Pelaksana (First Check)</label>
+                <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer"><input type="checkbox" id="pp-role-second" class="rounded border-slate-300 text-blue-600" /> SPV / Officer (Second Check &amp; Save DPJ)</label>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <button type="button" onclick="importPersonnelFromBatches()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition">Impor nama dari data lama</button>
+            <button type="submit" id="pp-submit-btn" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Personel</button>
+          </div>
+        </form>
+
+        <div class="border border-slate-200 rounded-2xl overflow-hidden shrink-0">
+          <div class="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold text-slate-700">Daftar Personel (<span id="pp-count-label">0</span>)</span>
+            <input type="search" id="pp-search" oninput="renderPersonnelTable()" placeholder="Cari nama…" class="text-xs px-3 py-1.5 w-48 max-w-full bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/25" />
+          </div>
+          <div class="overflow-auto table-scroll max-h-[45vh]">
+            <table class="w-full text-left border-collapse">
+              <thead class="sticky top-0 z-10 bg-slate-50">
+                <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                  <th class="py-2.5 px-4">Nama</th>
+                  <th class="py-2.5 px-4">Peran</th>
+                  <th class="py-2.5 px-4">Status</th>
+                  <th class="py-2.5 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="pp-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500">Personel dinonaktifkan (bukan dihapus) bila sudah tidak bertugas: namanya hilang dari pilihan baru, tetapi riwayat batch lama tetap menyimpan nama tersebut.</p>
+       </div>
       </div>
 
       <div class="bg-slate-50 px-5 py-3.5 border-t border-slate-200 flex justify-end">
@@ -427,7 +488,7 @@
           <input type="date" id="active-date-picker" onchange="onActiveDateChange(this.value)" class="text-xs font-semibold text-slate-900 bg-transparent border-none focus:outline-none cursor-pointer" />
         </div>
 
-        <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Produk (AA)</button>
+        <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition">Master Data</button>
         <details id="more-menu" class="relative">
           <summary class="list-none cursor-pointer select-none px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition" style="list-style:none">⋯ Lainnya</summary>
           <div class="absolute left-0 mt-1.5 z-40 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex flex-col gap-1">
@@ -450,53 +511,48 @@
   <!-- ======================================================================= -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col gap-5">
 
-    <!-- 1. ANTI-CLUTTER LIVE INCOMING TRIGGER FEED -->
-    <section class="bg-gradient-to-br from-slate-900 via-blue-950 to-blue-800 text-white rounded-2xl p-5 shadow-md">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[11px] font-bold uppercase tracking-wider">
-              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>Document-First Incoming Trigger</span>
-            </span>
-            <button type="button" id="btn-toggle-feed" onclick="toggleIncomingFeed()" class="px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-white/25 text-[11px] font-semibold transition">Sembunyikan Feed</button>
-            <button type="button" id="btn-expand-feed" onclick="toggleExpandIncomingFeed()" class="px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 text-blue-100 text-[11px] font-semibold transition">Lihat Semua</button>
-          </div>
-          <h2 class="text-base sm:text-lg font-bold mt-2">Dokumen mana yang baru datang? Catat langsung tanpa menunggu lengkap</h2>
-          <p class="text-xs text-blue-100 mt-0.5">Klik tombol dokumen di kanan untuk mencatat kedatangan pertama (misal QC masuk duluan), atau klik pil dokumen di tabel matriks.</p>
+    <!-- 1. PANEL AKTIVITAS DOKUMEN: tab "Menunggu Dokumen" | "Lengkap Hari Ini" -->
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-xs">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 pt-4">
+        <div class="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl" role="tablist">
+          <button type="button" id="tab-waiting" role="tab" onclick="setActivityTab('waiting')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-700 shadow-xs transition">Menunggu Dokumen <span id="tab-waiting-count" class="ml-1 px-1.5 py-0.5 rounded-full bg-blue-50 text-[10px]">0</span></button>
+          <button type="button" id="tab-today" role="tab" onclick="setActivityTab('today')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">Lengkap Hari Ini <span id="tab-today-count" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-200 text-[10px]">0</span></button>
         </div>
-
-        <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="openIncomingModal(null, 'PP')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ PP (PPI)</button>
-          <button type="button" onclick="openIncomingModal(null, 'KP')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ KP (PPI)</button>
-          <button type="button" onclick="openIncomingModal(null, 'KS')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ KS (PPI)</button>
-          <button type="button" onclick="openIncomingModal(null, 'QC')" class="px-3 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-emerald-950 text-xs font-extrabold shadow-xs transition">+ QC Masuk</button>
-          <button type="button" onclick="openIncomingModal(null, 'MC')" class="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-bold transition">+ MC Masuk</button>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] font-semibold text-slate-500 mr-0.5">Catat cepat:</span>
+          <button type="button" onclick="openIncomingModal(null, 'PP')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-xs font-bold text-slate-700 transition">+ PP</button>
+          <button type="button" onclick="openIncomingModal(null, 'KP')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-xs font-bold text-slate-700 transition">+ KP</button>
+          <button type="button" onclick="openIncomingModal(null, 'KS')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-xs font-bold text-slate-700 transition">+ KS</button>
+          <button type="button" onclick="openIncomingModal(null, 'QC')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-xs font-bold text-slate-700 transition">+ QC</button>
+          <button type="button" onclick="openIncomingModal(null, 'MC')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-xs font-bold text-slate-700 transition">+ MC</button>
+          <button type="button" id="btn-toggle-feed" onclick="toggleIncomingFeed()" class="ml-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 transition">Sembunyikan</button>
         </div>
       </div>
 
-      <div id="incoming-feed-grid" class="mt-4 pt-4 border-t border-white/15 grid grid-cols-1 md:grid-cols-3 gap-3"></div>
-    </section>
-
-    <!-- 2. SPECIAL PANEL: DOKUMEN LENGKAP PADA HARI BERJALAN -->
-    <section class="bg-gradient-to-br from-white to-emerald-50/80 border border-emerald-200 border-l-4 border-l-emerald-600 rounded-2xl p-5 shadow-xs">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[11px] font-bold uppercase tracking-wider">List Khusus Hari Berjalan</span>
-            <span id="today-date-label" class="text-xs font-bold text-emerald-700"></span>
+      <div id="activity-body" class="px-4 sm:px-5 pb-4 pt-3">
+        <div id="panel-waiting">
+          <div id="incoming-feed-grid" class="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden"></div>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <span class="text-[11px] text-slate-500">Batch dengan pergerakan dokumen terbaru berada di atas.</span>
+            <button type="button" id="btn-expand-feed" onclick="toggleExpandIncomingFeed()" class="hidden text-xs font-semibold text-blue-700 hover:text-blue-900">Lihat semua</button>
           </div>
-          <h3 class="text-base font-bold text-emerald-950 mt-1">Dokumen Lengkap pada Hari Berjalan</h3>
-          <p class="text-xs text-emerald-800/90 mt-0.5">Batch dihitung lengkap pada hari berjalan ketika <strong>dokumen wajib terakhir diterima</strong> tepat pada tanggal berjalan ini</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <div id="today-summary-badges" class="flex flex-wrap items-center gap-1.5"></div>
-          <button type="button" onclick="filterOnlyTodayComplete()" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition">Filter di Tabel Utama</button>
+        <div id="panel-today" class="hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="today-date-label" class="text-xs font-bold text-emerald-700"></span>
+              <div id="today-summary-badges" class="flex flex-wrap items-center gap-1.5"></div>
+            </div>
+            <button type="button" onclick="filterOnlyTodayComplete()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition">Filter di Tabel Utama</button>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">Batch dihitung lengkap pada hari berjalan ketika <strong>dokumen wajib terakhir</strong> diterima tepat pada tanggal berjalan.</p>
+          <div id="today-complete-list" class="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden"></div>
+          <div class="mt-2 text-right">
+            <button type="button" id="btn-expand-today" onclick="toggleExpandToday()" class="hidden text-xs font-semibold text-blue-700 hover:text-blue-900">Lihat semua</button>
+          </div>
         </div>
       </div>
-
-      <div id="today-complete-list" class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
     </section>
 
     <!-- 3. KPI SUMMARY CARDS (POINT 1, POINT 2, POINT 3, TOTAL CT) -->
@@ -948,6 +1004,245 @@
       let lastAutoDetectedName = "";
       let lastAutoDetectedCodeAA = "";
 
+
+      /* ===================== MASTER PERSONEL (First Check / Second Check / Save DPJ) ===================== */
+      const PERSONNEL_STORAGE_KEY = "ct_master_personel_v1";
+      // Isi dengan email admin untuk membatasi siapa yang boleh mengubah Master Personel.
+      // Dikosongkan = semua pengguna yang sudah login boleh mengelola.
+      const ADMIN_EMAILS = [];
+      let masterPersonnel = [];
+      let personnelMemoryFallback = null;
+      let editingPersonId = null;
+      let masterTab = "products";
+
+      function loadPersonnel() {
+        try {
+          const raw = window.localStorage ? window.localStorage.getItem(PERSONNEL_STORAGE_KEY) : null;
+          const parsed = raw ? JSON.parse(raw) : [];
+          masterPersonnel = Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+          masterPersonnel = Array.isArray(personnelMemoryFallback) ? cloneObj(personnelMemoryFallback) : [];
+        }
+      }
+
+      function savePersonnel() {
+        personnelMemoryFallback = cloneObj(masterPersonnel);
+        try {
+          if (window.localStorage) window.localStorage.setItem(PERSONNEL_STORAGE_KEY, JSON.stringify(masterPersonnel));
+        } catch (err) {}
+        if (window.__ctSync && window.__ctSync.onPersonnelSaved) window.__ctSync.onPersonnelSaved(cloneObj(masterPersonnel));
+      }
+
+      function canManageMaster() {
+        if (ADMIN_EMAILS.length === 0) return true;
+        const u = window.firebaseAuth && window.firebaseAuth.currentUser;
+        const email = u && u.email ? String(u.email).toLowerCase() : "";
+        return ADMIN_EMAILS.map(e => String(e).toLowerCase()).includes(email);
+      }
+
+      function normName(v) {
+        return String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+      }
+
+      // role: "first" (Pelaksana) | "second" (SPV / Officer). Hanya personel aktif.
+      function personnelFor(role) {
+        return masterPersonnel
+          .filter(p => p.active !== false && Array.isArray(p.roles) && p.roles.includes(role))
+          .sort((a, b) => String(a.name).localeCompare(String(b.name), "id"));
+      }
+
+      // Pilihan nama wajib bila daftar untuk peran tsb sudah diisi; jika masih kosong, input lama tetap diizinkan
+      function personnelRequired(role) {
+        return personnelFor(role).length > 0;
+      }
+
+      function personnelOptionsHtml(role, current) {
+        const list = personnelFor(role);
+        const cur = normName(current);
+        // "Budi Santoso (SPV)" dianggap sama dengan "Budi Santoso" di master
+        const curBase = normName(cur.replace(/\s*\([^)]*\)\s*$/, ""));
+        const names = new Set(list.map(p => p.name.toLowerCase()));
+        const matchKey = names.has(cur.toLowerCase()) ? cur.toLowerCase() : (names.has(curBase.toLowerCase()) ? curBase.toLowerCase() : "");
+        let html = `<option value="">-- Pilih nama --</option>`;
+        if (cur && !matchKey) {
+          html += `<option value="${escapeHtml(cur)}" selected>${escapeHtml(cur)} (nama lama)</option>`;
+        }
+        html += list.map(p =>
+          `<option value="${escapeHtml(p.name)}"${p.name.toLowerCase() === matchKey ? " selected" : ""}>${escapeHtml(p.name)}</option>`
+        ).join("");
+        return html;
+      }
+
+      function setMasterTab(tab) {
+        masterTab = tab === "personnel" ? "personnel" : "products";
+        const isP = masterTab === "personnel";
+        document.getElementById("md-tab-products").classList.toggle("hidden", isP);
+        document.getElementById("md-tab-personnel").classList.toggle("hidden", !isP);
+        const on = "px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-blue-600 text-blue-700";
+        const off = "px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800";
+        document.getElementById("md-tab-products-btn").className = isP ? off : on;
+        const pb = document.getElementById("md-tab-personnel-btn");
+        pb.className = isP ? on : off;
+        if (isP) renderPersonnelTable();
+      }
+
+      function renderPersonnelTable() {
+        const tbody = document.getElementById("pp-tbody");
+        if (!tbody) return;
+        const manage = canManageMaster();
+        const countEl = document.getElementById("pp-count-label");
+        const badge = document.getElementById("md-personnel-count");
+        if (countEl) countEl.textContent = String(masterPersonnel.length);
+        if (badge) badge.textContent = String(masterPersonnel.filter(p => p.active !== false).length);
+
+        const form = document.getElementById("pp-form");
+        const note = document.getElementById("pp-admin-note");
+        if (form) form.classList.toggle("hidden", !manage);
+        if (note) {
+          note.textContent = manage ? "" : "Hanya admin yang dapat menambah atau mengubah Master Personel. Anda dapat melihat daftar.";
+          note.classList.toggle("hidden", manage);
+        }
+
+        const q = (document.getElementById("pp-search") || { value: "" }).value.trim().toLowerCase();
+        const list = masterPersonnel
+          .filter(p => !q || String(p.name).toLowerCase().includes(q))
+          .sort((a, b) => (a.active === false) - (b.active === false) || String(a.name).localeCompare(String(b.name), "id"));
+
+        if (masterPersonnel.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada personel. Tambahkan nama di atas, atau klik <b>Impor nama dari data lama</b>.</td></tr>`;
+          return;
+        }
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Tidak ada nama yang cocok.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = list.map(p => {
+          const inactive = p.active === false;
+          const roles = [
+            p.roles && p.roles.includes("first") ? `<span class="px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">Pelaksana</span>` : "",
+            p.roles && p.roles.includes("second") ? `<span class="px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">SPV / Officer</span>` : ""
+          ].join(" ");
+          const status = inactive
+            ? `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold">Nonaktif</span>`
+            : `<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">Aktif</span>`;
+          const actions = manage ? `
+            <button type="button" onclick="editMasterPerson('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 mr-1 transition">Edit</button>
+            <button type="button" onclick="toggleMasterPersonActive('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100 mr-1 transition">${inactive ? "Aktifkan" : "Nonaktifkan"}</button>
+            <button type="button" onclick="deleteMasterPerson('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition">Hapus</button>` : "";
+          return `
+            <tr class="hover:bg-slate-50 ${inactive ? "opacity-60" : ""}">
+              <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(p.name)}</td>
+              <td class="py-2.5 px-4"><div class="flex flex-wrap gap-1">${roles || "—"}</div></td>
+              <td class="py-2.5 px-4">${status}</td>
+              <td class="py-2.5 px-4 text-right whitespace-nowrap">${actions}</td>
+            </tr>`;
+        }).join("");
+      }
+
+      function resetPersonForm() {
+        editingPersonId = null;
+        document.getElementById("pp-name").value = "";
+        document.getElementById("pp-role-first").checked = true;
+        document.getElementById("pp-role-second").checked = false;
+        document.getElementById("pp-form-title").textContent = "Tambah Personel";
+        document.getElementById("pp-submit-btn").textContent = "Simpan Personel";
+      }
+
+      function saveMasterPerson(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        if (!canManageMaster()) { showToast("Hanya admin yang dapat mengubah Master Personel.", "error"); return; }
+        const name = normName(document.getElementById("pp-name").value);
+        const roles = [];
+        if (document.getElementById("pp-role-first").checked) roles.push("first");
+        if (document.getElementById("pp-role-second").checked) roles.push("second");
+        if (!name) { showToast("Nama wajib diisi.", "error"); return; }
+        if (roles.length === 0) { showToast("Pilih minimal satu peran.", "error"); return; }
+        const dup = masterPersonnel.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== editingPersonId);
+        if (dup) { showToast(`Nama "${dup.name}" sudah ada di daftar.`, "error"); return; }
+
+        if (editingPersonId) {
+          const idx = masterPersonnel.findIndex(p => p.id === editingPersonId);
+          if (idx !== -1) masterPersonnel[idx] = { ...masterPersonnel[idx], name, roles };
+          showToast(`Personel ${name} diperbarui.`, "success");
+        } else {
+          masterPersonnel.push({ id: `psn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`, name, roles, active: true });
+          showToast(`Personel ${name} ditambahkan.`, "success");
+        }
+        savePersonnel();
+        resetPersonForm();
+        renderPersonnelTable();
+      }
+
+      function editMasterPerson(id) {
+        const p = masterPersonnel.find(x => x.id === id);
+        if (!p || !canManageMaster()) return;
+        editingPersonId = id;
+        document.getElementById("pp-name").value = p.name;
+        document.getElementById("pp-role-first").checked = (p.roles || []).includes("first");
+        document.getElementById("pp-role-second").checked = (p.roles || []).includes("second");
+        document.getElementById("pp-form-title").textContent = "Edit Personel";
+        document.getElementById("pp-submit-btn").textContent = "Simpan Perubahan";
+        document.getElementById("pp-name").focus();
+      }
+
+      function toggleMasterPersonActive(id) {
+        const p = masterPersonnel.find(x => x.id === id);
+        if (!p || !canManageMaster()) return;
+        p.active = p.active === false;
+        savePersonnel();
+        renderPersonnelTable();
+        showToast(`${p.name} ${p.active ? "diaktifkan" : "dinonaktifkan"}.`, "success");
+      }
+
+      function deleteMasterPerson(id) {
+        const p = masterPersonnel.find(x => x.id === id);
+        if (!p || !canManageMaster()) return;
+        if (!window.confirm(`Hapus "${p.name}" dari Master Personel?\nRiwayat batch lama tetap menyimpan nama ini. (Gunakan Nonaktifkan bila hanya tidak bertugas lagi.)`)) return;
+        masterPersonnel = masterPersonnel.filter(x => x.id !== id);
+        if (editingPersonId === id) resetPersonForm();
+        savePersonnel();
+        renderPersonnelTable();
+      }
+
+      // Kumpulkan nama unik dari data batch lama: First Check -> Pelaksana; Second Check & Save DPJ -> SPV / Officer
+      function importPersonnelFromBatches() {
+        if (!canManageMaster()) { showToast("Hanya admin yang dapat mengubah Master Personel.", "error"); return; }
+        const found = new Map();   // lower -> { name, roles:Set }
+        const add = (raw, role) => {
+          const name = normName(String(raw || "").replace(/\s*\([^)]*\)\s*$/, ""));
+          if (!name || /^(pelaksana|spv\s*\/\s*officer|spv|officer)$/i.test(name)) return;
+          const key = name.toLowerCase();
+          if (!found.has(key)) found.set(key, { name, roles: new Set() });
+          found.get(key).roles.add(role);
+        };
+        batches.forEach(b => {
+          DOC_LIST.forEach(def => {
+            const d = b.docs && b.docs[def.code];
+            if (!d) return;
+            add(d.firstPic, "first");
+            add(d.secondPic, "second");
+          });
+          add(b.dpjPic, "second");
+        });
+        let added = 0, merged = 0;
+        found.forEach(({ name, roles }) => {
+          const ex = masterPersonnel.find(p => p.name.toLowerCase() === name.toLowerCase());
+          if (ex) {
+            const before = (ex.roles || []).length;
+            ex.roles = Array.from(new Set([...(ex.roles || []), ...roles]));
+            if (ex.roles.length !== before) merged++;
+          } else {
+            masterPersonnel.push({ id: `psn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`, name, roles: Array.from(roles), active: true });
+            added++;
+          }
+        });
+        if (added || merged) savePersonnel();
+        renderPersonnelTable();
+        showToast(found.size === 0
+          ? "Tidak ada nama pada data lama."
+          : `Impor selesai: ${added} nama baru, ${merged} peran ditambahkan pada nama yang sudah ada.`, "success");
+      }
+
       function loadProducts() {
         try {
           const raw = window.localStorage ? window.localStorage.getItem(PRODUCT_STORAGE_KEY) : null;
@@ -1124,6 +1419,9 @@
       let incomingSelectedDocs = new Set(["QC"]);   // boleh lebih dari satu dokumen
       let feedVisible = true;
       let feedExpanded = false;
+      let todayExpanded = false;
+      let activityTab = "waiting";
+      const ACTIVITY_COLLAPSED_ROWS = 5;
       let tableDensity = "compact";
       let currentPage = 1;
       let pageSize = 5;
@@ -1336,73 +1634,119 @@
       }
 
       /* =====================================================================
-         5. RENDER: INCOMING TRIGGER FEED (ANTI-CLUTTER)
+         5. PANEL AKTIVITAS DOKUMEN (tab Menunggu | Lengkap Hari Ini)
          ===================================================================== */
+      function daysBetweenStr(a, b) {
+        const A = normalizeDateStr(a), B = normalizeDateStr(b);
+        if (!A || !B) return 0;
+        return Math.round((Date.parse(B) - Date.parse(A)) / 86400000);
+      }
+
+      // Kunci pergerakan terbaru: tanggal+jam datang dokumen terakhir pada batch
+      function lastActivityKey(batch) {
+        let best = "";
+        DOC_LIST.forEach(def => {
+          const d = batch.docs && batch.docs[def.code];
+          if (d && d.required && d.receiveTime) {
+            const k = `${d.receiveTime}T${d.receiveClock || "00:00"}`;
+            if (k > best) best = k;
+          }
+        });
+        return best;
+      }
+
+      // Terbaru di atas; bila sama, batch yang lebih baru dibuat (indeks lebih kecil) di atas
+      function sortByRecentActivity(items) {
+        return items
+          .map((x, i) => ({ x, i, k: lastActivityKey(x.batch) }))
+          .sort((a, b) => (a.k < b.k ? 1 : a.k > b.k ? -1 : a.i - b.i))
+          .map(o => o.x);
+      }
+
+      function batchProductText(batch) {
+        return batch.productName || String(batch.batchName || "").split(" — Bets ")[0];
+      }
+
+      function applyActivityTabUi() {
+        const isW = activityTab === "waiting";
+        const on = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-blue-700 shadow-xs transition";
+        const off = "px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition";
+        const tw = document.getElementById("tab-waiting"), tt = document.getElementById("tab-today");
+        if (tw) tw.className = isW ? on : off;
+        if (tt) tt.className = isW ? off : on.replace("text-blue-700", "text-emerald-700");
+        const pw = document.getElementById("panel-waiting"), pt = document.getElementById("panel-today");
+        if (pw) pw.classList.toggle("hidden", !isW);
+        if (pt) pt.classList.toggle("hidden", isW);
+      }
+
+      function setActivityTab(tab) {
+        activityTab = tab === "today" ? "today" : "waiting";
+        if (!feedVisible) { feedVisible = true; }
+        applyActivityTabUi();
+        renderIncomingFeed();
+        renderTodayCompleteList();
+      }
+
       function renderIncomingFeed() {
         const feed = document.getElementById("incoming-feed-grid");
         if (!feed) return;
-        feed.classList.toggle("hidden", !feedVisible);
+        const body = document.getElementById("activity-body");
+        if (body) body.classList.toggle("hidden", !feedVisible);
+        const toggleBtn = document.getElementById("btn-toggle-feed");
+        if (toggleBtn) toggleBtn.textContent = feedVisible ? "Sembunyikan" : "Tampilkan";
+        applyActivityTabUi();
 
-        const partialItems = batches
-          .map(b => ({ batch: b, ev: evaluateBatch(b) }))
-          .filter(x => x.ev.statusLabel !== "Released" && x.ev.arrivedCount > 0 && !x.ev.allReceived);
+        const targetDay = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        const partialItems = sortByRecentActivity(
+          batches
+            .map(b => ({ batch: b, ev: evaluateBatch(b) }))
+            .filter(x => x.ev.statusLabel !== "Released" && x.ev.arrivedCount > 0 && !x.ev.allReceived)
+        );
+
+        const countEl = document.getElementById("tab-waiting-count");
+        if (countEl) countEl.textContent = String(partialItems.length);
 
         const btnExp = document.getElementById("btn-expand-feed");
         if (btnExp) {
-          btnExp.textContent = feedExpanded
-            ? "Ringkas (Maks 3)"
-            : (partialItems.length > 3 ? `Lihat Semua (${partialItems.length})` : "Lihat Semua");
+          btnExp.classList.toggle("hidden", partialItems.length <= ACTIVITY_COLLAPSED_ROWS);
+          btnExp.textContent = feedExpanded ? "Ringkas" : `Lihat semua (${partialItems.length})`;
         }
+        feed.classList.toggle("max-h-[26rem]", feedExpanded);
+        feed.classList.toggle("overflow-y-auto", feedExpanded);
 
         if (partialItems.length === 0) {
-          feed.innerHTML = `<div class="md:col-span-3 bg-white/10 border border-white/15 rounded-xl p-3 text-xs text-blue-100">
-            Semua batch aktif saat ini sudah memiliki kelengkapan dokumen masuk. Klik <strong>"+ Catat Dokumen Masuk"</strong> untuk mencatat dokumen batch baru.
-          </div>`;
+          feed.innerHTML = `<div class="px-4 py-4 text-xs text-slate-600">Semua batch aktif sudah lengkap dokumennya. Klik <strong>"+ Catat Dokumen Masuk"</strong> untuk mencatat batch baru.</div>`;
           return;
         }
 
-        const visibleItems = feedExpanded ? partialItems : partialItems.slice(0, 3);
-
-        feed.innerHTML = visibleItems.map(({ batch, ev }) => {
-          const arrivedCodes = DOC_LIST
-            .filter(d => batch.docs[d.code].required && ev.docStateMap[d.code].status !== "NOT_ARRIVED")
-            .map(d => d.code);
-
+        const visible = feedExpanded ? partialItems : partialItems.slice(0, ACTIVITY_COLLAPSED_ROWS);
+        feed.innerHTML = visible.map(({ batch, ev }) => {
           const pendingCodes = DOC_LIST
             .filter(d => batch.docs[d.code].required && ev.docStateMap[d.code].status === "NOT_ARRIVED")
             .map(d => d.code);
-
           const nextDoc = pendingCodes[0] || null;
-
+          const waitDays = daysBetweenStr(ev.minReceiveTime, targetDay);
+          const since = waitDays <= 0 ? "Masuk hari ini" : `Sejak ${formatDayMonth(ev.minReceiveTime)} · ${waitDays} hari`;
+          const chips = pendingCodes.map(c => `<span class="px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold">${c}</span>`).join(" ");
+          const action = nextDoc
+            ? `<button type="button" onclick="openIncomingModal('${escapeHtml(batch.id)}', '${nextDoc}')" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shrink-0 transition">+ Input ${nextDoc}</button>`
+            : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg bg-purple-600 text-white text-[11px] font-bold shrink-0 transition">Detail</button>`;
           return `
-            <div class="bg-white/10 border border-white/15 rounded-xl p-3.5 flex flex-col justify-between gap-2.5">
-              <div>
-                <div class="flex items-center justify-between gap-2">
-                  <strong class="text-xs font-bold tracking-wide">${escapeHtml(batchLabel(batch))}</strong>
-                  <span class="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 text-[11px] font-bold">
-                    Masuk: ${arrivedCodes.join(", ")} (${ev.arrivedCount}/${ev.requiredCount})
-                  </span>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3.5 py-2.5 hover:bg-slate-50">
+              <div class="min-w-0 flex-1 basis-44">
+                <div class="flex items-center gap-2">
+                  <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
+                  <span class="text-[11px] font-semibold text-slate-500">${ev.arrivedCount}/${ev.requiredCount}</span>
                 </div>
-                <div class="text-xs text-slate-100 mt-1 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
-                <div class="text-[11px] text-blue-200 mt-1">
-                  Masuk awal (${escapeHtml(ev.firstDocCode || "-")}): ${escapeHtml(formatShortDate(ev.minReceiveTime))}
-                </div>
+                <div class="text-xs text-slate-600 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batchProductText(batch))}</div>
               </div>
-              <div class="pt-2 border-t border-white/15 flex items-center justify-between gap-2">
-                <span class="text-[11px] text-amber-200 truncate">Belum: ${pendingCodes.join(", ")}</span>
-                ${nextDoc
-                  ? `<button type="button" onclick="openDocModal('${escapeHtml(batch.id)}', '${nextDoc}')" class="px-2.5 py-1 rounded-lg bg-white text-slate-900 hover:bg-blue-50 text-[11px] font-bold shrink-0 transition">+ Input ${nextDoc}</button>`
-                  : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg bg-purple-500 text-white text-[11px] font-bold shrink-0 transition">Detail</button>`
-                }
-              </div>
-            </div>
-          `;
+              <div class="flex flex-wrap items-center gap-1"><span class="text-[11px] text-slate-500">Belum:</span> ${chips}</div>
+              <div class="text-[11px] text-slate-500 whitespace-nowrap">${escapeHtml(since)}</div>
+              ${action}
+            </div>`;
         }).join("");
       }
 
-      /* =====================================================================
-         6. RENDER: PANEL KHUSUS "DOKUMEN LENGKAP PADA HARI BERJALAN"
-         ===================================================================== */
       function renderTodayCompleteList() {
         const listEl = document.getElementById("today-complete-list");
         const dateLabel = document.getElementById("today-date-label");
@@ -1410,77 +1754,54 @@
         if (!listEl) return;
 
         const targetDay = normalizeDateStr(activeDateStr) || getSystemTodayStr();
-        if (dateLabel) {
-          dateLabel.textContent = `${formatHumanDate(targetDay)} (${targetDay})`;
-        }
+        if (dateLabel) dateLabel.textContent = `${formatHumanDate(targetDay)} (${targetDay})`;
 
-        const todayItems = batches
-          .map(b => ({ batch: b, ev: evaluateBatch(b) }))
-          .filter(x => x.ev.isTodayComplete);
-
+        const todayItems = sortByRecentActivity(
+          batches.map(b => ({ batch: b, ev: evaluateBatch(b) })).filter(x => x.ev.isTodayComplete)
+        );
         const readyCount = todayItems.filter(x => x.ev.statusLabel === "Ready for DPJ").length;
         const progressCount = todayItems.filter(x => x.ev.statusLabel === "In Progress").length;
         const releasedCount = todayItems.filter(x => x.ev.statusLabel === "Released").length;
 
+        const countEl = document.getElementById("tab-today-count");
+        if (countEl) countEl.textContent = String(todayItems.length);
         if (badgesWrap) {
           badgesWrap.innerHTML = `
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">${todayItems.length} Lengkap Hari Ini</span>
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">${readyCount} Siap Save DPJ</span>
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">${progressCount} Proses Check</span>
-            ${releasedCount > 0 ? `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-800">${releasedCount} Released</span>` : ""}
-          `;
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">${readyCount} Siap Save DPJ</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">${progressCount} Proses Check</span>
+            ${releasedCount > 0 ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800">${releasedCount} Released</span>` : ""}`;
         }
 
+        const btnExp = document.getElementById("btn-expand-today");
+        if (btnExp) {
+          btnExp.classList.toggle("hidden", todayItems.length <= ACTIVITY_COLLAPSED_ROWS);
+          btnExp.textContent = todayExpanded ? "Ringkas" : `Lihat semua (${todayItems.length})`;
+        }
+        listEl.classList.toggle("max-h-[26rem]", todayExpanded);
+        listEl.classList.toggle("overflow-y-auto", todayExpanded);
+
         if (todayItems.length === 0) {
-          listEl.innerHTML = `
-            <div class="md:col-span-2 lg:col-span-3 bg-white/90 border border-dashed border-emerald-300 rounded-xl p-4 text-xs text-slate-600">
-              Belum ada batch yang dokumen wajib terakhirnya diterima pada tanggal <strong>${escapeHtml(targetDay)}</strong>.
-              Coba catat dokumen terakhir yang masih kurang (misal <strong>MC</strong> pada batch parsial) menggunakan tanggal berjalan ini.
-            </div>
-          `;
+          listEl.innerHTML = `<div class="px-4 py-4 text-xs text-slate-600">Belum ada batch yang dokumen wajib terakhirnya diterima pada <strong>${escapeHtml(targetDay)}</strong>.</div>`;
           return;
         }
 
-        listEl.innerHTML = todayItems.map(({ batch, ev }) => {
-          const docStatusSummary = DOC_LIST.map(def => {
-            const d = batch.docs[def.code];
-            if (!d.required) return `<span class="text-slate-400 line-through">${def.code}:N/A</span>`;
-            const st = ev.docStateMap[def.code].status;
-            if (st === "VERIFIED") return `<span class="text-emerald-700 font-semibold">${def.code} ✓</span>`;
-            if (st === "PENDING_2ND") return `<span class="text-amber-700 font-semibold">${def.code} 2nd</span>`;
-            return `<span class="text-blue-700 font-semibold">${def.code} 1st</span>`;
-          }).join(" • ");
-
-          let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Proses 1st/2nd Check</span>`;
-          if (ev.statusLabel === "Released") {
-            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Released</span>`;
-          } else if (ev.statusLabel === "Ready for DPJ") {
-            statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">Ready for DPJ</span>`;
-          }
-
-          const actionButton = ev.statusLabel === "Ready for DPJ"
-            ? `<button type="button" onclick="quickSaveDpjToday('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-xs transition">Save DPJ Sekarang</button>`
-            : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 transition">Buka Detail</button>`;
-
+        const visible = todayExpanded ? todayItems : todayItems.slice(0, ACTIVITY_COLLAPSED_ROWS);
+        listEl.innerHTML = visible.map(({ batch, ev }) => {
+          let badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Proses 1st/2nd Check</span>`;
+          if (ev.statusLabel === "Released") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Released</span>`;
+          else if (ev.statusLabel === "Ready for DPJ") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">Ready for DPJ</span>`;
+          const action = ev.statusLabel === "Ready for DPJ"
+            ? `<button type="button" onclick="quickSaveDpjToday('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-600 text-white hover:bg-purple-700 shrink-0 transition">Save DPJ</button>`
+            : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 shrink-0 transition">Detail</button>`;
           return `
-            <div class="bg-white border border-emerald-200 rounded-xl p-3.5 shadow-2xs flex flex-col justify-between gap-2.5">
-              <div>
-                <div class="flex items-center justify-between gap-2">
-                  <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
-                  ${statusBadge}
-                </div>
-                <div class="text-xs font-semibold text-slate-700 mt-1 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
-                <div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-800">
-                  <span>Melengkapi hari ini: ${escapeHtml(ev.completingDocsToday.join(", "))}</span>
-                </div>
-                <div class="text-[11px] text-slate-600 mt-2 leading-relaxed">${docStatusSummary}</div>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3.5 py-2.5 hover:bg-slate-50">
+              <div class="min-w-0 flex-1 basis-44">
+                <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
+                <div class="text-xs text-slate-600 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batchProductText(batch))}</div>
               </div>
-              <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                <span class="text-[11px] font-bold text-slate-500">Verifikasi: ${ev.verifiedCount}/${ev.requiredCount}</span>
-                ${actionButton}
-              </div>
-            </div>
-          `;
+              <div>${badge}</div>
+              ${action}
+            </div>`;
         }).join("");
       }
 
@@ -1855,14 +2176,17 @@
 
       function toggleIncomingFeed() {
         feedVisible = !feedVisible;
-        const btn = document.getElementById("btn-toggle-feed");
-        if (btn) btn.textContent = feedVisible ? "Sembunyikan Feed" : "Tampilkan Feed";
         renderIncomingFeed();
       }
 
       function toggleExpandIncomingFeed() {
         feedExpanded = !feedExpanded;
         renderIncomingFeed();
+      }
+
+      function toggleExpandToday() {
+        todayExpanded = !todayExpanded;
+        renderTodayCompleteList();
       }
 
       function setTableDensity(mode) {
@@ -1936,6 +2260,9 @@
         populateProductPresetSelect(document.getElementById("inc-product-preset"), true);
 
         document.getElementById("inc-receive-date").value = normalizeDateStr(activeDateStr) || getSystemTodayStr();
+        document.getElementById("inc-receive-time").value = "";
+        incomingTimeAuto = false;
+        onIncomingDateChange();
         document.getElementById("inc-note").value = "";
 
         updateIncomingBetsUi(false, true);
@@ -1948,7 +2275,13 @@
           }
         }
         document.getElementById("incoming-modal").classList.remove("hidden");
-        if (!pre) setTimeout(() => { try { betsEl.focus(); } catch (e) {} }, 50);
+        // Fokus otomatis ke No. Bets, tetapi jangan merebut fokus bila pengguna sudah berpindah ke kolom lain
+        if (!pre) setTimeout(() => {
+          try {
+            const ae = document.activeElement;
+            if (!ae || ae === document.body) betsEl.focus();
+          } catch (e) {}
+        }, 50);
       }
 
       function closeIncomingModal() {
@@ -1962,6 +2295,34 @@
 
       let incomingTargetBatchId = null;
       let incomingEditCode = null;
+      let incomingTimeAuto = false;
+
+      function nowClock() {
+        const n = new Date();
+        return String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
+      }
+      function cleanClock(v) {
+        const t = String(v || "").trim();
+        return /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : "";
+      }
+      function currentUserEmail() {
+        const u = window.firebaseAuth && window.firebaseAuth.currentUser;
+        return u && u.email ? u.email : "";
+      }
+      function onIncomingDateChange() {
+        const dateEl = document.getElementById("inc-receive-date");
+        const timeEl = document.getElementById("inc-receive-time");
+        if (!dateEl || !timeEl) return;
+        const isToday = normalizeDateStr(dateEl.value) === getSystemTodayStr();
+        if (isToday && (!timeEl.value || incomingTimeAuto)) {
+          timeEl.value = nowClock();
+          incomingTimeAuto = true;
+        } else if (!isToday && incomingTimeAuto) {
+          timeEl.value = "";
+          incomingTimeAuto = false;
+        }
+      }
+      function onIncomingTimeInput() { incomingTimeAuto = false; }
       const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
       function formatDayMonth(dateStr) {
@@ -1986,7 +2347,7 @@
         if (!target) return { state: "free" };
         const d = target.docs[code];
         if (!d || !d.required) return { state: "na" };
-        if (d.receiveTime) return { state: "received", date: d.receiveTime };
+        if (d.receiveTime) return { state: "received", date: d.receiveTime, clock: d.receiveClock || "" };
         if (evaluateBatch(target).statusLabel === "Released") return { state: "locked" };
         return { state: "free" };
       }
@@ -2023,6 +2384,7 @@
         incomingEditCode = code;
         document.getElementById("inc-edit-date-code").textContent = `${code} — ${batchLabel(target)}`;
         document.getElementById("inc-edit-date-input").value = target.docs[code].receiveTime;
+        document.getElementById("inc-edit-time-input").value = target.docs[code].receiveClock || "";
         document.getElementById("inc-edit-date-box").classList.remove("hidden");
       }
 
@@ -2042,15 +2404,22 @@
         }
         const d = target.docs[code];
         const oldDate = d.receiveTime;
-        if (newDate === oldDate) { cancelEditIncomingDocDate(); return; }
-        if (!window.confirm(`Ubah tanggal terima ${code} pada ${batchLabel(target)}\ndari ${oldDate} menjadi ${newDate}?\n\nIni memengaruhi perhitungan cycle time.`)) return;
+        const oldClock = d.receiveClock || "";
+        const newClock = cleanClock(document.getElementById("inc-edit-time-input").value);
+        if (newDate === oldDate && newClock === oldClock) { cancelEditIncomingDocDate(); return; }
+        const oldTxt = `${oldDate}${oldClock ? " " + oldClock : ""}`;
+        const newTxt = `${newDate}${newClock ? " " + newClock : ""}`;
+        if (!window.confirm(`Ubah waktu terima ${code} pada ${batchLabel(target)}\ndari ${oldTxt} menjadi ${newTxt}?` + (newDate !== oldDate ? "\n\nPerubahan tanggal memengaruhi perhitungan cycle time." : ""))) return;
         d.receiveTime = newDate;
+        d.receiveClock = newClock;
+        d.editedAt = new Date().toISOString();
+        d.editedBy = currentUserEmail();
         saveBatches();
         cancelEditIncomingDocDate();
         renderDashboard();
         renderIncomingDocChoices();
         updateIncomingSaveState();
-        showToast(`Tanggal terima ${code} pada ${batchLabel(target)} diubah menjadi ${newDate}.`, "success");
+        showToast(`Waktu terima ${code} pada ${batchLabel(target)} diubah menjadi ${newTxt}.`, "success");
       }
 
       function renderIncomingDocChoices() {
@@ -2065,7 +2434,7 @@
 
           if (st.state === "received") {
             return `
-              <div class="${base} bg-emerald-50 border-emerald-400 text-emerald-800 cursor-default" title="Sudah masuk ${escapeHtml(formatShortDate(st.date))} — terkunci">
+              <div class="${base} bg-emerald-50 border-emerald-400 text-emerald-800 cursor-default" title="Sudah masuk ${escapeHtml(formatShortDate(st.date))}${st.clock ? " " + escapeHtml(st.clock) : ""} — terkunci">
                 <span class="text-xs font-extrabold">✓ ${def.code}</span>
                 <span class="text-[10px] font-semibold">${escapeHtml(formatDayMonth(st.date))}</span>
                 <button type="button" onclick="startEditIncomingDocDate('${def.code}')" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-emerald-300 text-[10px] text-emerald-700 hover:bg-emerald-100 leading-none" title="Ubah tanggal terima" aria-label="Ubah tanggal terima ${def.code}">✎</button>
@@ -2209,6 +2578,9 @@
         const receiveDate = normalizeDateStr(document.getElementById("inc-receive-date").value);
         const note = (document.getElementById("inc-note").value || "").trim();
         const betsVal = normalizeBets(document.getElementById("inc-new-bets").value);
+        const receiveClock = cleanClock(document.getElementById("inc-receive-time").value);
+        const recordedAt = new Date().toISOString();
+        const recordedBy = currentUserEmail();
 
         if (!betsVal) {
           showToast("No. Bets wajib diisi.", "error");
@@ -2262,6 +2634,9 @@
 
           selectedCodes.forEach(code => {
             newBatch.docs[code].receiveTime = receiveDate;
+            newBatch.docs[code].receiveClock = receiveClock;
+            newBatch.docs[code].recordedAt = recordedAt;
+            newBatch.docs[code].recordedBy = recordedBy;
             newBatch.docs[code].arrivalNote = note;
           });
 
@@ -2281,6 +2656,9 @@
         selectedCodes.forEach(code => {
           const docObj = target.docs[code];
           docObj.receiveTime = receiveDate;
+          docObj.receiveClock = receiveClock;
+          docObj.recordedAt = recordedAt;
+          docObj.recordedBy = recordedBy;
           if (note) docObj.arrivalNote = note;
         });
 
@@ -2389,7 +2767,7 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Pelaksana</label>
-                <input type="text" id="qm-pic-input" value="${escapeHtml(d.firstPic || "")}" placeholder="Misal: Rina" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+                <select id="qm-pic-input" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl">${personnelOptionsHtml("first", d.firstPic)}</select>
               </div>
               <button type="button" onclick="quickAdvanceStep('${escapeHtml(batch.id)}', '${docCode}', 'FIRST')" class="w-full py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Selesaikan First Check</button>
             </div>
@@ -2407,7 +2785,7 @@
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama SPV / Officer</label>
-                <input type="text" id="qm-pic-input" value="${escapeHtml(d.secondPic || "")}" placeholder="Misal: Budi Santoso" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+                <select id="qm-pic-input" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl">${personnelOptionsHtml("second", d.secondPic)}</select>
               </div>
               <button type="button" onclick="quickAdvanceStep('${escapeHtml(batch.id)}', '${docCode}', 'SECOND')" class="w-full py-2 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Verifikasi Second Check</button>
             </div>
@@ -2495,6 +2873,10 @@
             return;
           }
           const picVal = (document.getElementById("qm-pic-input").value || "").trim();
+          if (!picVal && personnelRequired("first")) {
+            showToast("Pilih nama Pelaksana dari daftar.", "error");
+            return;
+          }
           d.firstCheckTime = dateVal;
           d.firstPic = picVal || "Pelaksana";
           saveBatches();
@@ -2510,6 +2892,10 @@
             return;
           }
           const picVal = (document.getElementById("qm-pic-input").value || "").trim();
+          if (!picVal && personnelRequired("second")) {
+            showToast("Pilih nama SPV / Officer dari daftar.", "error");
+            return;
+          }
           d.secondCheckTime = dateVal;
           d.secondPic = picVal || "SPV / Officer";
           saveBatches();
@@ -2710,7 +3096,7 @@
                       ${!inputsDisabled && d.receiveTime ? `<button type="button" onclick="setDraftDocToday('${def.code}', 'firstCheckTime')" class="text-[11px] font-semibold text-blue-600 hover:underline">Hari Ini</button>` : ""}
                     </div>
                     <input type="date" value="${escapeHtml(d.firstCheckTime || "")}" ${inputsDisabled || !d.receiveTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'firstCheckTime', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg mb-1.5" />
-                    <input type="text" value="${escapeHtml(d.firstPic || "")}" ${inputsDisabled || !d.receiveTime ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'firstPic', this.value)" placeholder="PIC Pelaksana" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+                    <select ${inputsDisabled || !d.receiveTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'firstPic', this.value)" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg">${personnelOptionsHtml("first", d.firstPic)}</select>
                   </div>
 
                   <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
@@ -2719,7 +3105,7 @@
                       ${!inputsDisabled && d.firstCheckTime ? `<button type="button" onclick="setDraftDocToday('${def.code}', 'secondCheckTime')" class="text-[11px] font-semibold text-indigo-600 hover:underline">Hari Ini</button>` : ""}
                     </div>
                     <input type="date" value="${escapeHtml(d.secondCheckTime || "")}" ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'secondCheckTime', this.value)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg mb-1.5" />
-                    <input type="text" value="${escapeHtml(d.secondPic || "")}" ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'secondPic', this.value)" placeholder="PIC SPV / Officer" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+                    <select ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'secondPic', this.value)" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg">${personnelOptionsHtml("second", d.secondPic)}</select>
                   </div>
                 </div>
               `}
@@ -2737,6 +3123,7 @@
         const dpjTodayBtn = document.getElementById("bm-dpj-today-btn");
 
         dpjDateInput.value = formDraft.dpjTime || "";
+        dpjPicInput.innerHTML = personnelOptionsHtml("second", formDraft.dpjPic);
         dpjPicInput.value = formDraft.dpjPic || "";
 
         const canDpj = ev.allVerified && !isLocked;
@@ -2881,43 +3268,6 @@
         }
 
         const ev = evaluateBatch(formDraft);
-        if (ev.requiredCount === 0) {
-          showToast("Minimal harus ada 1 dokumen wajib pada setiap batch.", "error");
-          return;
-        }
-
-        const savedCopy = cloneObj(formDraft);
-        if (editingOriginalId) {
-          const idx = batches.findIndex(b => b.id === editingOriginalId);
-          if (idx !== -1) batches[idx] = savedCopy;
-          else batches.unshift(savedCopy);
-        } else {
-          if (savedCopy.batchNo && batches.some(b => String(b.batchNo || "").trim().toLowerCase() === savedCopy.batchNo.toLowerCase())) {
-            showToast(`No. Bets ${savedCopy.batchNo} sudah terdaftar.`, "error");
-            return;
-          }
-          batches.unshift(savedCopy);
-        }
-
-        saveBatches();
-        closeBatchModal();
-        renderDashboard();
-        showToast(`Progres batch ${batchLabel(savedCopy)} berhasil disimpan.`, "success");
-      }
-
-      function executeSaveDpj() {
-        if (!formDraft) return;
-        formDraft.id = document.getElementById("bm-release-id").value.trim();
-        formDraft.batchName = document.getElementById("bm-batch-name").value.trim();
-        formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
-        formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
-
-        if (!formDraft.id || !formDraft.batchName) {
-          showToast("Nama Batch wajib diisi.", "error");
-          return;
-        }
-
-        const ev = evaluateBatch(formDraft);
         if (!ev.allVerified) {
           showToast("Seluruh dokumen wajib harus selesai 2nd Check sebelum Save DPJ.", "error");
           return;
@@ -2927,6 +3277,10 @@
           formDraft.dpjTime = normalizeDateStr(activeDateStr) || getSystemTodayStr();
         }
         if (!formDraft.dpjPic) {
+          if (personnelRequired("second")) {
+            showToast("Pilih nama SPV / Officer dari daftar sebelum Save DPJ.", "error");
+            return;
+          }
           formDraft.dpjPic = "SPV / Officer";
         }
 
@@ -2961,6 +3315,11 @@
         const todayVal = normalizeDateStr(activeDateStr) || getSystemTodayStr();
         if (ev.maxSecondCheckTime && diffDays(ev.maxSecondCheckTime, todayVal) < 0) {
           showToast(`Tanggal berjalan (${todayVal}) lebih awal dari 2nd Check terakhir (${ev.maxSecondCheckTime}).`, "error");
+          return;
+        }
+        if (!batch.dpjPic && personnelRequired("second")) {
+          showToast("Pilih nama SPV / Officer dulu: buka Detail Batch, isi Save DPJ.", "error");
+          openBatchModal(batch.id);
           return;
         }
         batch.dpjTime = todayVal;
@@ -3028,13 +3387,17 @@
          ===================================================================== */
       function openMasterModal() {
         resetMasterProductForm();
+        resetPersonForm();
         renderMasterProductTable();
+        renderPersonnelTable();
+        setMasterTab("products");
         document.getElementById("master-modal").classList.remove("hidden");
       }
 
       function closeMasterModal() {
         document.getElementById("master-modal").classList.add("hidden");
         editingProductId = null;
+        editingPersonId = null;
       }
 
       function resetMasterProductForm() {
@@ -3404,6 +3767,8 @@
       window.clearFilters = clearFilters;
       window.toggleIncomingFeed = toggleIncomingFeed;
       window.toggleExpandIncomingFeed = toggleExpandIncomingFeed;
+      window.toggleExpandToday = toggleExpandToday;
+      window.setActivityTab = setActivityTab;
       window.setTableDensity = setTableDensity;
       window.onPageSizeChange = onPageSizeChange;
       window.changePage = changePage;
@@ -3414,6 +3779,16 @@
       window.setIncomingMode = setIncomingMode;
       window.renderIncomingDocChoices = renderIncomingDocChoices;
       window.selectIncomingDoc = selectIncomingDoc;
+      window.onIncomingDateChange = onIncomingDateChange;
+      window.onIncomingTimeInput = onIncomingTimeInput;
+      window.setMasterTab = setMasterTab;
+      window.renderPersonnelTable = renderPersonnelTable;
+      window.saveMasterPerson = saveMasterPerson;
+      window.editMasterPerson = editMasterPerson;
+      window.resetPersonForm = resetPersonForm;
+      window.toggleMasterPersonActive = toggleMasterPersonActive;
+      window.deleteMasterPerson = deleteMasterPerson;
+      window.importPersonnelFromBatches = importPersonnelFromBatches;
       window.startEditIncomingDocDate = startEditIncomingDocDate;
       window.cancelEditIncomingDocDate = cancelEditIncomingDocDate;
       window.saveEditIncomingDocDate = saveEditIncomingDocDate;
@@ -3468,6 +3843,15 @@
       Object.assign(window.__ctSync, {
         getBatches: function () { return cloneObj(batches); },
         getProducts: function () { return cloneObj(masterProducts); },
+        getPersonnel: function () { return cloneObj(masterPersonnel); },
+        applyRemotePersonnel: function (arr) {
+          masterPersonnel = arr;
+          personnelMemoryFallback = cloneObj(masterPersonnel);
+          try { if (window.localStorage) window.localStorage.setItem(PERSONNEL_STORAGE_KEY, JSON.stringify(masterPersonnel)); } catch (e) {}
+          const mm = document.getElementById("master-modal");
+          if (mm && !mm.classList.contains("hidden")) renderPersonnelTable();
+          else renderPersonnelTable();
+        },
         toast: function (msg, type) { showToast(msg, type); },
         applyRemoteBatches: function (arr) {
           const changed = normalizeAllBatches(arr);   // seragamkan data lama dari cloud
@@ -3490,6 +3874,7 @@
         const picker = document.getElementById("active-date-picker");
         if (picker) picker.value = activeDateStr;
         loadProducts();
+        loadPersonnel();
         loadBatches();
         renderDashboard();
       });
@@ -3747,6 +4132,7 @@
       const bridge = window.__ctSync;
       createSync("batches",  "b_", bridge.getBatches,  bridge.applyRemoteBatches,  "onBatchesSaved");
       createSync("products", "p_", bridge.getProducts, bridge.applyRemoteProducts, "onProductsSaved");
+      createSync("personnel", "s_", bridge.getPersonnel, bridge.applyRemotePersonnel, "onPersonnelSaved");
     }
 
     // PWA: service worker
