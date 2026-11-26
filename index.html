@@ -128,14 +128,12 @@
 
           <div id="inc-new-fields" class="hidden space-y-2.5">
             <div>
-              <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1">
-                <label for="inc-new-name" class="text-[11px] font-bold text-slate-600">Nama Produk (batch baru)</label>
-                <span class="inline-flex items-center gap-1 max-w-full">
-                  <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="cari produk…" class="text-[11px] w-24 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
-                  <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2 py-0.5 w-40 max-w-full focus:outline-none">
-                    <option value="">-- Pilih dari Master --</option>
-                  </select>
-                </span>
+              <label for="inc-new-name" class="block text-[11px] font-bold text-slate-600 mb-1">Nama Produk (batch baru)</label>
+              <div class="flex gap-2 mb-1.5">
+                <select id="inc-product-preset" onchange="onIncomingProductPresetChange(this.value)" class="flex-1 min-w-0 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/25">
+                  <option value="">-- Pilih dari Master Produk --</option>
+                </select>
+                <input type="search" id="inc-preset-search" oninput="filterProductPreset('inc-product-preset', this.value)" placeholder="Cari di Master…" class="w-36 shrink-0 text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/25" />
               </div>
               <input type="text" id="inc-new-name" oninput="onIncomingBetsOrProductChange('name')" placeholder="Otomatis terisi jika kode AA cocok, atau ketik/pilih Nama Produk" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
@@ -188,6 +186,7 @@
         <div>
           <label for="inc-note" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Catatan Kedatangan (Opsional)</label>
           <input type="text" id="inc-note" placeholder="Contoh: Laporan hasil uji QC masuk dari lab..." class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+          <p class="mt-1 text-[11px] text-slate-500">Catatan ditampilkan di daftar Menunggu Dokumen, Lengkap Hari Ini, dan Matriks Monitoring (di bawah nama produk).</p>
         </div>
       </div>
 
@@ -256,15 +255,13 @@
             <label for="bm-batch-no" class="block text-xs font-bold text-slate-700 mb-1">No. Bets (AABBC)</label>
             <input type="text" id="bm-batch-no" oninput="onBatchModalBetsInput(this.value)" onkeyup="onBatchModalBetsInput(this.value)" onchange="onBatchModalBetsInput(this.value)" autocomplete="off" autocapitalize="characters" placeholder="Misal: 61046" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label for="bm-batch-name" class="text-xs font-bold text-slate-700">Nama Produk <span class="text-red-600">*</span></label>
-              <span class="inline-flex items-center gap-1">
-              <input type="search" id="bm-preset-search" oninput="filterProductPreset('bm-product-preset', this.value)" placeholder="cari…" class="text-[11px] w-20 px-2 py-0.5 border border-slate-300 rounded-lg bg-white focus:outline-none" />
-              <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-1.5 py-0.5 focus:outline-none">
-                <option value="">Master</option>
+          <div class="sm:col-span-2">
+            <label for="bm-batch-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
+            <div class="flex gap-2 mb-1.5">
+              <select id="bm-product-preset" onchange="onBatchModalProductPreset(this.value)" class="flex-1 min-w-0 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/25">
+                <option value="">-- Pilih dari Master Produk --</option>
               </select>
-              </span>
+              <input type="search" id="bm-preset-search" oninput="filterProductPreset('bm-product-preset', this.value)" placeholder="Cari di Master…" class="w-36 shrink-0 text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/25" />
             </div>
             <input type="text" id="bm-batch-name" oninput="onBatchModalNameInput(this.value)" placeholder="Contoh: Paracetamol 500mg Tablet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl disabled:bg-slate-100 disabled:text-slate-500" />
           </div>
@@ -273,6 +270,18 @@
 
         <!-- 5 Documents Cards -->
         <div id="bm-docs-container" class="flex flex-col gap-3"></div>
+
+        <!-- Catatan Issue -->
+        <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-4">
+          <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+            <div>
+              <h4 class="text-sm font-bold text-rose-950">Catatan Issue Dokumen</h4>
+              <p class="text-xs text-rose-700 mt-0.5">Isi bila dokumen sudah lengkap &amp; 2nd Check selesai, tetapi masih ada issue (mis. menunggu klarifikasi atau data tidak konsisten).</p>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs font-bold text-rose-900 cursor-pointer"><input type="checkbox" id="bm-issue-open" onchange="onDraftIssueChange()" class="rounded border-rose-300" /> Masih ada issue</label>
+          </div>
+          <textarea id="bm-issue-note" rows="2" oninput="onDraftIssueChange()" placeholder="Contoh: Paraf KP belum lengkap, menunggu klarifikasi produksi…" class="w-full px-3 py-2 text-sm bg-white border border-rose-200 rounded-xl disabled:bg-slate-100 disabled:text-slate-500"></textarea>
+        </div>
 
         <!-- Point 3: Save DPJ Box -->
         <div class="bg-purple-50/70 border border-purple-200 rounded-2xl p-4">
@@ -1423,7 +1432,7 @@
           if (searchEl) searchEl.value = "";
         }
         const list = masterProducts.filter(p => productMatchesQuery(p, q));
-        const baseLabel = includePlaceholder ? "-- Pilih dari Master Produk --" : "Master";
+        const baseLabel = "-- Pilih dari Master Produk --";
         const firstOpt = `<option value="">${q ? `${list.length} produk cocok` : baseLabel}</option>`;
         const opts = list.slice(0, 300).map(p =>
           `<option value="${escapeHtml(p.id)}">${productTag(p)}${escapeHtml(p.name)}</option>`
@@ -1756,7 +1765,7 @@
           const since = waitDays <= 0 ? "Masuk hari ini" : `Sejak ${formatDayMonth(ev.minReceiveTime)} · ${waitDays} hari`;
           const chips = pendingCodes.map(c => `<span class="px-1.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-bold">${c}</span>`).join(" ");
           const action = nextDoc
-            ? `<button type="button" onclick="openIncomingModal('${escapeHtml(batch.id)}', '${nextDoc}')" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shrink-0 transition">+ Input ${nextDoc}</button>`
+            ? `<button type="button" onclick="openIncomingModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shrink-0 transition">+ Dok</button>`
             : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg bg-purple-600 text-white text-[11px] font-bold shrink-0 transition">Detail</button>`;
           return `
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3.5 py-2.5 hover:bg-slate-50">
@@ -1764,14 +1773,37 @@
                 <div class="flex items-center gap-2">
                   <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
                   <span class="text-[11px] font-semibold text-slate-500">${ev.arrivedCount}/${ev.requiredCount}</span>
+                  ${issueChipHtml(batch)}
                 </div>
                 <div class="text-xs text-slate-600 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batchProductText(batch))}</div>
+                ${batchNotesHtml(batch)}
               </div>
               <div class="flex flex-wrap items-center gap-1"><span class="text-[11px] text-slate-500">Belum:</span> ${chips}</div>
               <div class="text-[11px] text-slate-500 whitespace-nowrap">${escapeHtml(since)}</div>
               ${action}
             </div>`;
         }).join("");
+      }
+
+      function batchNotesHtml(batch) {
+        const lines = [];
+        if (batch.issueNote && String(batch.issueNote).trim()) {
+          const open = !!batch.issueOpen;
+          lines.push(`<div class="text-[11px] font-semibold ${open ? "text-rose-700" : "text-slate-500"}">${open ? "⚠ Issue" : "Issue (selesai)"}: ${escapeHtml(batch.issueNote)}</div>`);
+        } else if (batch.issueOpen) {
+          lines.push(`<div class="text-[11px] font-semibold text-rose-700">⚠ Ada issue (belum ada catatan)</div>`);
+        }
+        DOC_LIST.forEach(def => {
+          const d = batch.docs && batch.docs[def.code];
+          if (d && d.arrivalNote && String(d.arrivalNote).trim()) {
+            lines.push(`<div class="text-[11px] text-slate-500 italic">📝 ${def.code}: ${escapeHtml(d.arrivalNote)}</div>`);
+          }
+        });
+        return lines.length ? `<div class="mt-1 space-y-0.5 max-w-md whitespace-normal">${lines.join("")}</div>` : "";
+      }
+
+      function issueChipHtml(batch) {
+        return batch.issueOpen ? `<span class="ml-1.5 px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold" title="${escapeHtml(batch.issueNote || "Ada issue")}">⚠ Ada Issue</span>` : "";
       }
 
       function renderTodayCompleteList() {
@@ -1816,15 +1848,16 @@
         listEl.innerHTML = visible.map(({ batch, ev }) => {
           let badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Proses 1st/2nd Check</span>`;
           if (ev.statusLabel === "Released") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Released</span>`;
-          else if (ev.statusLabel === "Ready for DPJ") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">Ready for DPJ</span>`;
+          else if (ev.statusLabel === "Ready for DPJ") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800" title="2nd Check selesai. Released baru terhitung setelah Save DPJ.">Ready for DPJ · belum Released</span>`;
           const action = ev.statusLabel === "Ready for DPJ"
             ? `<button type="button" onclick="quickSaveDpjToday('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-600 text-white hover:bg-purple-700 shrink-0 transition">Save DPJ</button>`
             : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 shrink-0 transition">Detail</button>`;
           return `
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3.5 py-2.5 hover:bg-slate-50">
               <div class="min-w-0 flex-1 basis-44">
-                <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>
+                <strong class="text-sm font-extrabold text-slate-900">${escapeHtml(batchLabel(batch))}</strong>${issueChipHtml(batch)}
                 <div class="text-xs text-slate-600 truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batchProductText(batch))}</div>
+                ${batchNotesHtml(batch)}
               </div>
               <div>${badge}</div>
               ${action}
@@ -2100,8 +2133,9 @@
           return `
             <tr class="hover:bg-slate-50/90 transition">
               <td class="${cellPad} align-middle">
-                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batchLabel(batch))}${todayChip}${brftBadgeHtml(batch)}</div>
+                <div class="font-extrabold text-slate-900 whitespace-nowrap">${escapeHtml(batchLabel(batch))}${todayChip}${brftBadgeHtml(batch)}${issueChipHtml(batch)}</div>
                 <div class="text-xs text-slate-600 max-w-xs truncate" title="${escapeHtml(batch.batchName)}">${escapeHtml(batch.batchName)}</div>
+                ${batchNotesHtml(batch)}
                 ${detailSub}
               </td>
               <td class="${cellPad} align-middle">
@@ -2643,6 +2677,8 @@
             batchName: `${newName} — Bets ${betsVal}`,
             dpjTime: "",
             dpjPic: "",
+            issueOpen: false,
+            issueNote: "",
             docs: createEmptyDocs()
           };
 
@@ -2951,6 +2987,8 @@
           batchName: "",
           dpjTime: "",
           dpjPic: "",
+          issueOpen: false,
+          issueNote: "",
           docs: createEmptyDocs()
         };
         document.getElementById("batch-modal-title").textContent = "Buat Batch Perilisan Baru";
@@ -3150,6 +3188,14 @@
         const dpjTodayBtn = document.getElementById("bm-dpj-today-btn");
 
         dpjDateInput.value = formDraft.dpjTime || "";
+        const issueChk = document.getElementById("bm-issue-open");
+        const issueTxt = document.getElementById("bm-issue-note");
+        if (issueChk && issueTxt) {
+          issueChk.checked = !!formDraft.issueOpen;
+          issueTxt.value = formDraft.issueNote || "";
+          issueChk.disabled = isLocked;
+          issueTxt.disabled = isLocked;
+        }
         dpjPicInput.innerHTML = personnelOptionsHtml("second", formDraft.dpjPic);
         dpjPicInput.value = formDraft.dpjPic || "";
 
@@ -3237,6 +3283,12 @@
         formDraft[field] = field === "dpjTime" ? normalizeDateStr(val) : val;
       }
 
+      function onDraftIssueChange() {
+        if (!formDraft) return;
+        formDraft.issueOpen = document.getElementById("bm-issue-open").checked;
+        formDraft.issueNote = document.getElementById("bm-issue-note").value;
+      }
+
       function setDraftDpjToday() {
         if (!formDraft) return;
         formDraft.dpjTime = normalizeDateStr(activeDateStr) || getSystemTodayStr();
@@ -3299,6 +3351,7 @@
           showToast("Seluruh dokumen wajib harus selesai 2nd Check sebelum Save DPJ.", "error");
           return;
         }
+        if (formDraft.issueOpen && !window.confirm("Batch ini masih ditandai ADA ISSUE:\n" + (formDraft.issueNote || "(tanpa catatan)") + "\n\nTetap lanjutkan Save DPJ (Released)?")) return;
 
         if (!formDraft.dpjTime) {
           formDraft.dpjTime = normalizeDateStr(activeDateStr) || getSystemTodayStr();
@@ -3351,6 +3404,7 @@
           return;
         }
         if (!confirmOpenBrft(batch)) return;
+        if (batch.issueOpen && !window.confirm("Batch ini masih ditandai ADA ISSUE:\n" + (batch.issueNote || "(tanpa catatan)") + "\n\nTetap lanjutkan Save DPJ (Released)?")) return;
         batch.dpjTime = todayVal;
         if (!batch.dpjPic) batch.dpjPic = "SPV / Officer";
         saveBatches();
