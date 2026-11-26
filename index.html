@@ -290,7 +290,10 @@
               <h4 class="text-sm font-bold text-purple-950">Point 3 — Save DPJ (Sekali per Batch oleh SPV / Officer)</h4>
               <p id="bm-dpj-readiness" class="text-xs text-purple-700 mt-0.5">Menunggu seluruh dokumen wajib berstatus Verified.</p>
             </div>
-            <span id="bm-dpj-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Belum Siap DPJ</span>
+            <span class="inline-flex items-center gap-2">
+              <button type="button" id="bm-dpj-cancel-btn" onclick="cancelDraftDpj()" class="hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 transition">Batalkan Save DPJ</button>
+              <span id="bm-dpj-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Belum Siap DPJ</span>
+            </span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1850,7 +1853,7 @@
           if (ev.statusLabel === "Released") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">Released</span>`;
           else if (ev.statusLabel === "Ready for DPJ") badge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800" title="2nd Check selesai. Released baru terhitung setelah Save DPJ.">Ready for DPJ · belum Released</span>`;
           const action = ev.statusLabel === "Ready for DPJ"
-            ? `<button type="button" onclick="quickSaveDpjToday('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-600 text-white hover:bg-purple-700 shrink-0 transition">Save DPJ</button>`
+            ? `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-600 text-white hover:bg-purple-700 shrink-0 transition" title="Buka Detail Batch untuk mengisi tanggal dan SPV/Officer, lalu Save DPJ">Buka Save DPJ</button>`
             : `<button type="button" onclick="openBatchModal('${escapeHtml(batch.id)}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-800 hover:bg-slate-200 shrink-0 transition">Detail</button>`;
           return `
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3.5 py-2.5 hover:bg-slate-50">
@@ -3194,6 +3197,8 @@
           issueChk.checked = !!formDraft.issueOpen;
           issueTxt.value = formDraft.issueNote || "";
           issueChk.disabled = isLocked;
+          const cancelBtn = document.getElementById("bm-dpj-cancel-btn");
+          if (cancelBtn) cancelBtn.classList.toggle("hidden", !formDraft.dpjTime);
           issueTxt.disabled = isLocked;
         }
         dpjPicInput.innerHTML = personnelOptionsHtml("second", formDraft.dpjPic);
@@ -3288,6 +3293,16 @@
         formDraft.issueOpen = document.getElementById("bm-issue-open").checked;
         formDraft.issueNote = document.getElementById("bm-issue-note").value;
       }
+
+      function cancelDraftDpj() {
+        if (!formDraft) return;
+        if (!window.confirm("Batalkan Save DPJ untuk batch ini? Status kembali ke Ready for DPJ (belum Released). Klik Simpan Progres Batch setelahnya.")) return;
+        formDraft.dpjTime = "";
+        formDraft.dpjPic = "";
+        draftUnlocked = true;
+        renderBatchModal();
+      }
+      window.cancelDraftDpj = cancelDraftDpj;
 
       function setDraftDpjToday() {
         if (!formDraft) return;
