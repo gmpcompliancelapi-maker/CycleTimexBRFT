@@ -159,10 +159,16 @@
           <p class="mt-1 text-[11px] text-slate-500"><span class="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1"></span>sudah masuk (terkunci; ✎ ubah tanggal)<span class="inline-block w-2 h-2 rounded-sm bg-blue-600 mr-1 ml-3"></span>dipilih<span class="inline-block w-2 h-2 rounded-sm bg-slate-300 mr-1 ml-3"></span>N/A</p>
           <p id="inc-save-note" class="hidden mt-2 text-xs font-semibold text-amber-700"></p>
           <div id="inc-edit-date-box" class="hidden mt-2 p-3 rounded-xl border border-amber-200 bg-amber-50">
-            <div class="text-xs font-bold text-amber-900 mb-1.5">Ubah tanggal &amp; jam terima <span id="inc-edit-date-code"></span></div>
+            <div class="text-xs font-bold text-amber-900 mb-1.5">Ubah tanggal, jam &amp; keterangan <span id="inc-edit-date-code"></span></div>
             <div class="flex flex-wrap items-center gap-2">
               <input type="date" id="inc-edit-date-input" class="px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
               <input type="time" id="inc-edit-time-input" aria-label="Jam datang" class="px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <input type="text" id="inc-edit-note-input" placeholder="Keterangan kedatangan (kosongkan untuk menghapus)" class="flex-1 min-w-[10rem] px-3 py-1.5 text-sm border border-amber-300 rounded-lg bg-white" />
+              <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 cursor-pointer"><input type="checkbox" id="inc-edit-note-done" class="rounded border-slate-300 text-emerald-600" /> Keterangan selesai</label>
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
               <button type="button" onclick="saveEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition">Simpan Perubahan</button>
               <button type="button" onclick="cancelEditIncomingDocDate()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition">Batal</button>
             </div>
@@ -1798,7 +1804,7 @@
         }
         DOC_LIST.forEach(def => {
           const d = batch.docs && batch.docs[def.code];
-          if (d && d.arrivalNote && String(d.arrivalNote).trim()) {
+          if (d && d.arrivalNote && String(d.arrivalNote).trim() && !d.arrivalNoteDone) {
             lines.push(`<div class="text-[11px] text-slate-500 italic">📝 ${def.code}: ${escapeHtml(d.arrivalNote)}</div>`);
           }
         });
@@ -2449,6 +2455,8 @@
         document.getElementById("inc-edit-date-code").textContent = `${code} — ${batchLabel(target)}`;
         document.getElementById("inc-edit-date-input").value = target.docs[code].receiveTime;
         document.getElementById("inc-edit-time-input").value = target.docs[code].receiveClock || "";
+        document.getElementById("inc-edit-note-input").value = target.docs[code].arrivalNote || "";
+        document.getElementById("inc-edit-note-done").checked = !!target.docs[code].arrivalNoteDone;
         document.getElementById("inc-edit-date-box").classList.remove("hidden");
       }
 
@@ -2470,12 +2478,25 @@
         const oldDate = d.receiveTime;
         const oldClock = d.receiveClock || "";
         const newClock = cleanClock(document.getElementById("inc-edit-time-input").value);
-        if (newDate === oldDate && newClock === oldClock) { cancelEditIncomingDocDate(); return; }
+        const oldNote = String(d.arrivalNote || "").trim();
+        const newNote = (document.getElementById("inc-edit-note-input").value || "").trim();
+        const oldDone = !!d.arrivalNoteDone;
+        const newDone = newNote ? document.getElementById("inc-edit-note-done").checked : false;
+
+        const timeChanged = newDate !== oldDate || newClock !== oldClock;
+        const noteChanged = newNote !== oldNote || newDone !== oldDone;
+        if (!timeChanged && !noteChanged) { cancelEditIncomingDocDate(); return; }
+
         const oldTxt = `${oldDate}${oldClock ? " " + oldClock : ""}`;
         const newTxt = `${newDate}${newClock ? " " + newClock : ""}`;
-        if (!window.confirm(`Ubah waktu terima ${code} pada ${batchLabel(target)}\ndari ${oldTxt} menjadi ${newTxt}?` + (newDate !== oldDate ? "\n\nPerubahan tanggal memengaruhi perhitungan cycle time." : ""))) return;
-        d.receiveTime = newDate;
-        d.receiveClock = newClock;
+        if (timeChanged && !window.confirm(`Ubah waktu terima ${code} pada ${batchLabel(target)}\ndari ${oldTxt} menjadi ${newTxt}?` + (newDate !== oldDate ? "\n\nPerubahan tanggal memengaruhi perhitungan cycle time." : ""))) return;
+
+        if (timeChanged) {
+          d.receiveTime = newDate;
+          d.receiveClock = newClock;
+        }
+        d.arrivalNote = newNote;
+        d.arrivalNoteDone = newDone;
         d.editedAt = new Date().toISOString();
         d.editedBy = currentUserEmail();
         saveBatches();
@@ -2483,7 +2504,7 @@
         renderDashboard();
         renderIncomingDocChoices();
         updateIncomingSaveState();
-        showToast(`Waktu terima ${code} pada ${batchLabel(target)} diubah menjadi ${newTxt}.`, "success");
+        showToast(timeChanged ? `Waktu terima ${code} pada ${batchLabel(target)} diubah menjadi ${newTxt}.` : `Keterangan ${code} pada ${batchLabel(target)} disimpan.`, "success");
       }
 
       function renderIncomingDocChoices() {
@@ -2704,6 +2725,7 @@
             newBatch.docs[code].recordedAt = recordedAt;
             newBatch.docs[code].recordedBy = recordedBy;
             newBatch.docs[code].arrivalNote = note;
+            newBatch.docs[code].arrivalNoteDone = false;
           });
 
           batches.unshift(newBatch);
@@ -2725,7 +2747,7 @@
           docObj.receiveClock = receiveClock;
           docObj.recordedAt = recordedAt;
           docObj.recordedBy = recordedBy;
-          if (note) docObj.arrivalNote = note;
+          if (note) { docObj.arrivalNote = note; docObj.arrivalNoteDone = false; }
         });
 
         saveBatches();
@@ -2869,7 +2891,22 @@
           `;
         }
 
-        body.innerHTML = naSectionHtml + stepHtml;
+        let noteEditHtml = "";
+        if (d.required && d.receiveTime) {
+          noteEditHtml = `
+            <div class="border-t border-slate-200 pt-3 mt-1 flex flex-col gap-2">
+              <label for="qm-edit-note" class="block text-xs font-bold text-slate-700">Keterangan Kedatangan</label>
+              <input type="text" id="qm-edit-note" value="${escapeHtml(d.arrivalNote || "")}" placeholder="Contoh: RFID menyusul (kosongkan untuk menghapus)" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 cursor-pointer">
+                  <input type="checkbox" id="qm-edit-note-done" ${d.arrivalNoteDone ? "checked" : ""} class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                  Keterangan sudah selesai
+                </label>
+                <button type="button" onclick="saveDocNote('${escapeHtml(batch.id)}', '${docCode}')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-white hover:bg-slate-900 transition">Simpan Keterangan</button>
+              </div>
+            </div>`;
+        }
+        body.innerHTML = naSectionHtml + stepHtml + noteEditHtml;
         document.getElementById("doc-modal").classList.remove("hidden");
       }
 
@@ -2905,6 +2942,23 @@
         showToast(`Alasan N/A untuk ${docCode} disimpan.`, "success");
       }
 
+      function saveDocNote(batchId, docCode) {
+        const batch = batches.find(b => b.id === batchId);
+        if (!batch || !batch.docs[docCode]) return;
+        if (evaluateBatch(batch).statusLabel === "Released") {
+          showToast("Batch sudah Released (terkunci).", "error");
+          return;
+        }
+        const d = batch.docs[docCode];
+        const note = (document.getElementById("qm-edit-note").value || "").trim();
+        d.arrivalNote = note;
+        d.arrivalNoteDone = note ? document.getElementById("qm-edit-note-done").checked : false;
+        saveBatches();
+        renderDashboard();
+        openDocModal(batchId, docCode);
+        showToast(note ? `Keterangan ${docCode} disimpan${d.arrivalNoteDone ? " (selesai)" : ""}.` : `Keterangan ${docCode} dihapus.`, "success");
+      }
+
       function quickAdvanceStep(batchId, docCode, step) {
         const batch = batches.find(b => b.id === batchId);
         if (!batch) return;
@@ -2919,7 +2973,8 @@
         if (step === "RECEIVE") {
           const noteVal = (document.getElementById("qm-note-input").value || "").trim();
           d.receiveTime = dateVal;
-          if (noteVal) d.arrivalNote = noteVal;
+          d.arrivalNote = noteVal;
+          d.arrivalNoteDone = false;
           saveBatches();
           closeDocModal();
           renderDashboard();
@@ -3176,6 +3231,14 @@
                     <select ${inputsDisabled || !d.firstCheckTime ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'secondPic', this.value)" class="w-full px-2.5 py-1 text-xs bg-white border border-slate-300 rounded-lg">${personnelOptionsHtml("second", d.secondPic)}</select>
                   </div>
                 </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                  <label class="text-[11px] font-semibold text-slate-600 shrink-0">Keterangan kedatangan</label>
+                  <input type="text" value="${escapeHtml(d.arrivalNote || "")}" ${isLocked ? "disabled" : ""} oninput="onDraftDocField('${def.code}', 'arrivalNote', this.value)" placeholder="Contoh: RFID menyusul (kosongkan untuk menghapus)" class="flex-1 min-w-[10rem] px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg disabled:bg-slate-100 disabled:text-slate-500" />
+                  <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 cursor-pointer">
+                    <input type="checkbox" ${d.arrivalNoteDone ? "checked" : ""} ${isLocked ? "disabled" : ""} onchange="onDraftDocField('${def.code}', 'arrivalNoteDone', this.checked)" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                    Selesai
+                  </label>
+                </div>
               `}
             </div>
           `;
@@ -3288,6 +3351,17 @@
         formDraft[field] = field === "dpjTime" ? normalizeDateStr(val) : val;
       }
 
+      // Ambil nilai issue langsung dari form saat menyimpan (jaga-jaga bila event input terlewat)
+      function syncDraftIssueFromDom() {
+        if (!formDraft) return;
+        const chk = document.getElementById("bm-issue-open");
+        const txt = document.getElementById("bm-issue-note");
+        if (chk && txt) {
+          formDraft.issueOpen = chk.checked;
+          formDraft.issueNote = String(txt.value || "").trim();
+        }
+      }
+
       function onDraftIssueChange() {
         if (!formDraft) return;
         formDraft.issueOpen = document.getElementById("bm-issue-open").checked;
@@ -3316,6 +3390,7 @@
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
+        syncDraftIssueFromDom();
 
         if (!formDraft.id || !formDraft.productName) {
           showToast("Nama Produk wajib diisi.", "error");
@@ -3353,6 +3428,7 @@
         formDraft.batchNo = normalizeBets(document.getElementById("bm-batch-no").value);
         formDraft.productName = document.getElementById("bm-batch-name").value.trim();
         syncDraftBatchName();
+        syncDraftIssueFromDom();
         formDraft.dpjTime = normalizeDateStr(document.getElementById("bm-dpj-date").value);
         formDraft.dpjPic = (document.getElementById("bm-dpj-pic").value || "").trim();
 
@@ -3919,6 +3995,8 @@
       window.onDraftDocField = onDraftDocField;
       window.setDraftDocToday = setDraftDocToday;
       window.onDraftDpjChange = onDraftDpjChange;
+      window.onDraftIssueChange = onDraftIssueChange;
+      window.saveDocNote = saveDocNote;
       window.setDraftDpjToday = setDraftDpjToday;
       window.saveBatchProgress = saveBatchProgress;
       window.executeSaveDpj = executeSaveDpj;
