@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="id" class="auth-pending">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e3a8a" />
+  <title>KPI Pelaksana — Cycle Time Perilisan</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    #auth-splash { display: none; position: fixed; inset: 0; z-index: 9999; background: #f1f5f9; align-items: center; justify-content: center; padding: 24px; }
+    html.auth-pending #auth-splash { display: flex; }
+    html.auth-pending body > *:not(#auth-splash):not(script) { display: none !important; }
+    #auth-splash .box { max-width: 380px; width: 100%; text-align: center; color: #0f172a; }
+    #auth-splash .spin { width: 28px; height: 28px; margin: 18px auto 10px; border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%; animation: ctspin .8s linear infinite; }
+    #auth-splash p { margin: 4px 0; font-size: 14px; color: #64748b; }
+    #splash-err { display: none; margin-top: 14px; padding: 12px; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 13px; text-align: left; word-break: break-word; }
+    @keyframes ctspin { to { transform: rotate(360deg); } }
+    th.sticky-h { position: sticky; top: 0; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased">
+
+  <div id="auth-splash" role="status">
+    <div class="box">
+      <div class="spin" id="splash-spin"></div>
+      <p id="splash-msg">Memuat KPI…</p>
+      <div id="splash-err"></div>
+      <p style="margin-top:12px"><a href="index.html" class="text-blue-700 font-semibold">Kembali ke Dashboard</a></p>
+    </div>
+  </div>
+  <script>
+    window.__authFail = function (msg) {
+      if (!document.documentElement.classList.contains("auth-pending")) return;
+      document.getElementById("splash-spin").style.display = "none";
+      document.getElementById("splash-msg").textContent = "Halaman belum bisa dibuka.";
+      var e = document.getElementById("splash-err"); e.textContent = msg; e.style.display = "block";
+    };
+    window.__wd = setTimeout(function () { window.__authFail("Waktu habis saat memuat Firebase / memeriksa login."); }, 10000);
+  </script>
+
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-extrabold tracking-tight">KPI Pelaksana</h1>
+        <p class="text-xs text-slate-500">Jumlah dokumen &amp; poin First Check per bulan, dipecah per Line</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="user-email" class="text-xs font-medium text-slate-500"></span>
+        <a href="index.html" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">← Dashboard</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-5 space-y-5">
+
+    <!-- Kontrol -->
+    <section class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center gap-3">
+      <div class="inline-flex items-center gap-1">
+        <button type="button" id="btn-prev" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200" aria-label="Bulan sebelumnya">‹</button>
+        <input type="month" id="month" class="px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl" />
+        <button type="button" id="btn-next" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200" aria-label="Bulan berikutnya">›</button>
+      </div>
+      <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+        <input type="checkbox" id="legacy" class="rounded border-slate-300 text-blue-600" />
+        Sertakan pemeriksaan sebelum fitur KPI (estimasi, memakai Line &amp; nilai master saat ini)
+      </label>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <button type="button" id="btn-csv-sum" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">Ekspor Ringkasan (CSV)</button>
+        <button type="button" id="btn-csv-det" class="px-3 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">Ekspor Detail (CSV)</button>
+      </div>
+    </section>
+
+    <div id="load-note" class="hidden px-4 py-3 rounded-xl text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800"></div>
+
+    <!-- Ringkasan -->
+    <section id="cards" class="grid grid-cols-2 lg:grid-cols-5 gap-3"></section>
+
+    <!-- Peringatan kualitas data -->
+    <section id="warnings" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 space-y-1"></section>
+
+    <!-- Tabel per line -->
+    <section id="tables" class="space-y-5"></section>
+
+    <!-- Detail orang -->
+    <section id="detail" class="hidden bg-white border border-slate-200 rounded-2xl overflow-hidden"></section>
+
+    <p class="text-[11px] text-slate-500 leading-relaxed">
+      Dokumen dihitung satu kali pada tanggal First Check (bukan tanggal terima). Line &amp; poin dokumen <b>terkunci saat First Check disimpan</b>,
+      jadi perubahan nilai di Master Data tidak mengubah bulan-bulan lalu. Poin mengikuti Line dokumen (Line produk); pengelompokan tabel mengikuti Line Pelaksana.
+      KPI dihitung dari data batch yang ada: bila batch dihapus, hitungannya ikut hilang.
+    </p>
+  </main>
+
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    const FB = "https://www.gstatic.com/firebasejs/13.4.0/";
+    let initializeApp, getAuth, onAuthStateChanged, getFirestore, collection, doc, onSnapshot;
+    try {
+      ({ initializeApp } = await import(FB + "firebase-app.js"));
+      ({ getAuth, onAuthStateChanged } = await import(FB + "firebase-auth.js"));
+      ({ getFirestore, collection, doc, onSnapshot } = await import(FB + "firebase-firestore.js"));
+    } catch (err) {
+      window.__authFail("Gagal memuat Firebase SDK (" + (err && err.message ? err.message : err) + ").");
+      throw err;
+    }
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCgauuitX89coLfFSd6hBG1wR8NfebBSg",
+      authDomain: "brftxcycletime.firebaseapp.com",
+      projectId: "brftxcycletime",
+      storageBucket: "brftxcycletime.firebasestorage.app",
+      messagingSenderId: "434471197911",
+      appId: "1:434471197911:web:3d7c4028763d9d03816492",
+      measurementId: "G-W2TXSEHFJB"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    /* ================= UTIL ================= */
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const DOCS = ["PP", "KP", "KS", "QC", "MC"];
+    const fmt = (n) => (Math.round(n * 10) / 10).toLocaleString("id-ID");
+
+    function unpack(raw) {
+      let parsed = {};
+      if (raw && typeof raw.data === "string") { try { parsed = JSON.parse(raw.data); } catch (e) {} }
+      else if (raw && raw.data && typeof raw.data === "object") parsed = raw.data;
+      return { ...parsed, _o: raw ? raw.o : 0 };
+    }
+    const normName = (v) => String(v == null ? "" : v).replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+/g, " ").trim().toLowerCase();
+    const normBets = (v) => String(v == null ? "" : v).trim().toUpperCase();
+    function todayMonth() {
+      const n = new Date();
+      return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0");
+    }
+
+    /* ================= DATA ================= */
+    const store = { batches: [], products: [], personnel: [], points: {}, ready: { batches: false } };
+
+    function productForBatch(b) {
+      const bets = normBets(b.batchNo || "");
+      if (/^[A-Z0-9]{4}[0-9]$/.test(bets)) {
+        const byAA = store.products.find((p) => p.codeAA && String(p.codeAA).toUpperCase() === bets.slice(0, 2));
+        if (byAA) return byAA;
+      }
+      const nm = String(b.productName || String(b.batchName || "").split(" — Bets ")[0]).trim().toLowerCase();
+      return nm ? (store.products.find((p) => String(p.name || "").trim().toLowerCase() === nm) || null) : null;
+    }
+    function pointOf(code, line) {
+      const row = store.points && store.points[code];
+      if (!row) return null;
+      const v = row[String(line)];
+      if (v === undefined || v === null || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    /* ================= PERHITUNGAN ================= */
+    function compute(month, includeLegacy) {
+      const roster = new Map();   // normName -> personel master
+      store.personnel.forEach((p) => { if ((p.roles || []).includes("first")) roster.set(normName(p.name), p); });
+
+      const rows = [];            // satu baris per dokumen yang diperiksa
+      const warn = { noLine: 0, noPoint: 0, estimate: 0, unmatchedNames: new Map(), noPersonLine: new Set() };
+
+      store.batches.forEach((b) => {
+        const docs = b.docs || {};
+        DOCS.forEach((code) => {
+          const d = docs[code];
+          if (!d || !d.required || !d.firstCheckTime || !d.firstPic) return;
+          if (!String(d.firstCheckTime).startsWith(month)) return;
+          const stamped = d.kpiLine !== undefined;
+          let line, pts, estimated = false;
+          if (stamped) { line = d.kpiLine; pts = d.kpiPoints; }
+          else if (includeLegacy) {
+            const p = productForBatch(b);
+            line = p && (Number(p.line) === 1 || Number(p.line) === 2) ? Number(p.line) : null;
+            pts = line ? pointOf(code, line) : null;
+            estimated = true;
+          } else return;
+
+          const person = roster.get(normName(d.firstPic)) || null;
+          const key = person ? "m:" + normName(person.name) : "u:" + normName(d.firstPic);
+          const personName = person ? person.name : String(d.firstPic).trim();
+          const personLine = person && (Number(person.line) === 1 || Number(person.line) === 2) ? Number(person.line) : null;
+          if (!person) warn.unmatchedNames.set(normName(d.firstPic), String(d.firstPic).trim());
+          else if (!personLine) warn.noPersonLine.add(person.name);
+          if (!line) warn.noLine++;
+          if (line && (pts === null || pts === undefined)) warn.noPoint++;
+          if (estimated) warn.estimate++;
+          rows.push({
+            key, person: personName, matched: !!person, personLine,
+            bets: b.batchNo || b.id, product: b.productName || String(b.batchName || "").split(" — Bets ")[0],
+            code, date: d.firstCheckTime, line: line || null, points: Number(pts) || 0, estimated,
+            cross: !!(personLine && line && personLine !== line)
+          });
+        });
+      });
+
+      const byPerson = new Map();
+      rows.forEach((r) => {
+        if (!byPerson.has(r.key)) {
+          byPerson.set(r.key, { key: r.key, name: r.person, matched: r.matched, line: r.personLine, docs: 0, points: 0, byCode: { PP: 0, KP: 0, KS: 0, QC: 0, MC: 0 }, cross: 0, rows: [] });
+        }
+        const p = byPerson.get(r.key);
+        p.docs++; p.points += r.points; p.byCode[r.code]++; if (r.cross) p.cross++; p.rows.push(r);
+      });
+      // pelaksana master tanpa data bulan ini ikut tampil (0 dokumen)
+      roster.forEach((p, k) => {
+        if (p.active === false) return;
+        const key = "m:" + k;
+        if (!byPerson.has(key)) byPerson.set(key, { key, name: p.name, matched: true, line: (Number(p.line) === 1 || Number(p.line) === 2) ? Number(p.line) : null, docs: 0, points: 0, byCode: { PP: 0, KP: 0, KS: 0, QC: 0, MC: 0 }, cross: 0, rows: [] });
+      });
+      const people = Array.from(byPerson.values()).sort((a, c) => c.points - a.points || c.docs - a.docs || a.name.localeCompare(c.name, "id"));
+      return { rows, people, warn };
+    }
+
+    /* ================= RENDER ================= */
+    let selected = null;
+    let current = null;
+
+    function render() {
+      const month = $("month").value || todayMonth();
+      const res = compute(month, $("legacy").checked);
+      current = { month, ...res };
+
+      const totalDocs = res.rows.length;
+      const totalPts = res.rows.reduce((a, r) => a + r.points, 0);
+      const activePeople = res.people.filter((p) => p.docs > 0).length;
+      const ptsLine = (l) => res.rows.filter((r) => r.line === l).reduce((a, r) => a + r.points, 0);
+      const card = (label, val, sub) => `<div class="bg-white border border-slate-200 rounded-2xl p-4"><div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">${label}</div><div class="text-2xl font-extrabold mt-1">${val}</div><div class="text-[11px] text-slate-500 mt-0.5">${sub}</div></div>`;
+      $("cards").innerHTML =
+        card("Dokumen Diperiksa", fmt(totalDocs), month) +
+        card("Total Poin", fmt(totalPts), "semua line") +
+        card("Pelaksana Aktif", fmt(activePeople), "ada pemeriksaan bulan ini") +
+        card("Poin Line 1", fmt(ptsLine(1)), `${res.rows.filter((r) => r.line === 1).length} dokumen`) +
+        card("Poin Line 2", fmt(ptsLine(2)), `${res.rows.filter((r) => r.line === 2).length} dokumen`);
+
+      const w = res.warn, wl = [];
+      if (w.noLine) wl.push(`${w.noLine} dokumen berasal dari produk <b>tanpa Line</b> (atur Line di Master Produk).`);
+      if (w.noPoint) wl.push(`${w.noPoint} dokumen <b>tanpa nilai KPI</b> saat diperiksa (dihitung 0 poin; atur di Master Data → Nilai KPI).`);
+      if (w.estimate) wl.push(`${w.estimate} dokumen adalah <b>estimasi</b> (diperiksa sebelum fitur KPI; memakai nilai master saat ini).`);
+      if (w.unmatchedNames.size) wl.push(`Nama belum ada di Master Personel: <b>${Array.from(w.unmatchedNames.values()).map(esc).join(", ")}</b>. Tambahkan di Master Data → Personel.`);
+      if (w.noPersonLine.size) wl.push(`Pelaksana tanpa Line: <b>${Array.from(w.noPersonLine).map(esc).join(", ")}</b>.`);
+      $("warnings").classList.toggle("hidden", wl.length === 0);
+      $("warnings").innerHTML = wl.map((t) => `<div>⚠ ${t}</div>`).join("");
+
+      const groups = [
+        { title: "Line 1", match: (p) => p.matched && p.line === 1 },
+        { title: "Line 2", match: (p) => p.matched && p.line === 2 },
+        { title: "Tanpa Line / Nama belum di master", match: (p) => !(p.matched && (p.line === 1 || p.line === 2)) }
+      ];
+      $("tables").innerHTML = groups.map((g) => {
+        const list = res.people.filter(g.match);
+        if (!list.length && g.title.startsWith("Tanpa")) return "";
+        const body = list.length ? list.map((p, i) => `
+          <tr class="hover:bg-slate-50 cursor-pointer ${selected === p.key ? "bg-blue-50" : ""}" data-key="${esc(p.key)}">
+            <td class="py-2.5 px-3 text-slate-400 font-semibold">${p.docs ? i + 1 : "—"}</td>
+            <td class="py-2.5 px-3 font-bold text-slate-900">${esc(p.name)}${p.matched ? "" : ' <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">belum di master</span>'}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold">${fmt(p.docs)}</td>
+            <td class="py-2.5 px-3 text-right font-extrabold text-blue-700">${fmt(p.points)}</td>
+            ${DOCS.map((c) => `<td class="py-2.5 px-3 text-right text-slate-600">${p.byCode[c] || "·"}</td>`).join("")}
+            <td class="py-2.5 px-3 text-right text-slate-600">${p.cross || "·"}</td>
+          </tr>`).join("") : `<tr><td colspan="10" class="py-5 px-3 text-center text-slate-500">Belum ada Pelaksana pada kelompok ini.</td></tr>`;
+        return `
+          <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <h2 class="text-sm font-extrabold">${g.title}</h2>
+              <span class="text-[11px] text-slate-500">${list.length} orang · ${fmt(list.reduce((a, p) => a + p.docs, 0))} dokumen · ${fmt(list.reduce((a, p) => a + p.points, 0))} poin</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead><tr class="bg-white text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                  <th class="py-2 px-3">#</th><th class="py-2 px-3">Pelaksana</th><th class="py-2 px-3 text-right">Dokumen</th><th class="py-2 px-3 text-right">Poin</th>
+                  ${DOCS.map((c) => `<th class="py-2 px-3 text-right">${c}</th>`).join("")}<th class="py-2 px-3 text-right" title="Dokumen dari line yang berbeda dengan line Pelaksana">Lintas Line</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">${body}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }).join("");
+
+      document.querySelectorAll("#tables tr[data-key]").forEach((tr) => {
+        tr.addEventListener("click", () => { selected = selected === tr.dataset.key ? null : tr.dataset.key; render(); });
+      });
+      renderDetail();
+    }
+
+    function renderDetail() {
+      const box = $("detail");
+      const p = current && selected ? current.people.find((x) => x.key === selected) : null;
+      if (!p) { box.classList.add("hidden"); return; }
+      box.classList.remove("hidden");
+      const perDay = new Map();
+      p.rows.forEach((r) => { const v = perDay.get(r.date) || { n: 0, pts: 0 }; v.n++; v.pts += r.points; perDay.set(r.date, v); });
+      const days = Array.from(perDay.entries()).sort((a, c) => (a[0] < c[0] ? -1 : 1));
+      const rowsSorted = p.rows.slice().sort((a, c) => (a.date < c.date ? 1 : a.date > c.date ? -1 : 0));
+      box.innerHTML = `
+        <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <h2 class="text-sm font-extrabold">Detail — ${esc(p.name)} <span class="text-slate-500 font-semibold">(${esc(current.month)})</span></h2>
+          <button type="button" id="detail-close" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Tutup</button>
+        </div>
+        <div class="p-4 grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Per Hari</h3>
+            <div class="border border-slate-200 rounded-xl overflow-hidden"><table class="w-full text-xs"><tbody class="divide-y divide-slate-100">
+              ${days.length ? days.map(([d, v]) => `<tr><td class="py-1.5 px-3 font-semibold">${esc(d)}</td><td class="py-1.5 px-3 text-right">${v.n} dok</td><td class="py-1.5 px-3 text-right font-bold text-blue-700">${fmt(v.pts)}</td></tr>`).join("") : `<tr><td class="py-3 px-3 text-slate-500">Belum ada pemeriksaan.</td></tr>`}
+            </tbody></table></div>
+          </div>
+          <div class="lg:col-span-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Daftar Dokumen</h3>
+            <div class="border border-slate-200 rounded-xl overflow-auto max-h-80"><table class="w-full text-xs">
+              <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase"><tr><th class="py-1.5 px-3 text-left">Tanggal</th><th class="py-1.5 px-3 text-left">No. Bets</th><th class="py-1.5 px-3 text-left">Produk</th><th class="py-1.5 px-3 text-left">Dok</th><th class="py-1.5 px-3 text-left">Line</th><th class="py-1.5 px-3 text-right">Poin</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">
+              ${rowsSorted.map((r) => `<tr><td class="py-1.5 px-3 whitespace-nowrap">${esc(r.date)}</td><td class="py-1.5 px-3 font-bold">${esc(r.bets)}</td><td class="py-1.5 px-3">${esc(r.product)}</td><td class="py-1.5 px-3 font-bold">${esc(r.code)}</td><td class="py-1.5 px-3">${r.line ? "Line " + r.line : "—"}${r.cross ? ' <span class="text-amber-700">(lintas)</span>' : ""}</td><td class="py-1.5 px-3 text-right font-bold">${fmt(r.points)}${r.estimated ? " *" : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="py-3 px-3 text-slate-500">Belum ada pemeriksaan.</td></tr>`}
+              </tbody></table></div>
+            <p class="text-[11px] text-slate-500 mt-1">* estimasi (diperiksa sebelum fitur KPI).</p>
+          </div>
+        </div>`;
+      $("detail-close").addEventListener("click", () => { selected = null; render(); });
+    }
+
+    /* ================= CSV ================= */
+    function csvCell(v) { const t = String(v == null ? "" : v); return /[",\n;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }
+    function download(name, lines) {
+      const blob = new Blob(["\uFEFF" + lines.map((r) => r.map(csvCell).join(",")).join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    $("btn-csv-sum").addEventListener("click", () => {
+      if (!current) return;
+      const head = ["Bulan", "Pelaksana", "Line Pelaksana", "Dokumen", "Poin", ...DOCS, "Lintas Line", "Ada di Master"];
+      download(`kpi-ringkasan-${current.month}.csv`, [head, ...current.people.map((p) => [current.month, p.name, p.line || "", p.docs, p.points, ...DOCS.map((c) => p.byCode[c]), p.cross, p.matched ? "ya" : "tidak"])]);
+    });
+    $("btn-csv-det").addEventListener("click", () => {
+      if (!current) return;
+      const head = ["Bulan", "Pelaksana", "Line Pelaksana", "Tanggal First Check", "No. Bets", "Produk", "Dokumen", "Line Dokumen", "Poin", "Estimasi", "Lintas Line"];
+      download(`kpi-detail-${current.month}.csv`, [head, ...current.rows.sort((a, c) => (a.date < c.date ? -1 : 1)).map((r) => [current.month, r.person, r.personLine || "", r.date, r.bets, r.product, r.code, r.line || "", r.points, r.estimated ? "ya" : "", r.cross ? "ya" : ""])]);
+    });
+
+    /* ================= KONTROL ================= */
+    $("month").value = todayMonth();
+    $("month").addEventListener("change", () => { selected = null; render(); });
+    $("legacy").addEventListener("change", render);
+    const shift = (d) => {
+      const [y, m] = ($("month").value || todayMonth()).split("-").map(Number);
+      const dt = new Date(y, m - 1 + d, 1);
+      $("month").value = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+      selected = null; render();
+    };
+    $("btn-prev").addEventListener("click", () => shift(-1));
+    $("btn-next").addEventListener("click", () => shift(1));
+
+    /* ================= FIRESTORE (baca-saja) ================= */
+    function listen(db) {
+      const note = (msg) => { const n = $("load-note"); n.textContent = msg; n.classList.remove("hidden"); };
+      const sub = (name, apply) => onSnapshot(collection(db, "workspaces", "main", name), (snap) => {
+        apply(snap.docs.map((d) => unpack(d.data())));
+        render();
+      }, (err) => note("Tidak dapat membaca data " + name + " (" + (err && err.code ? err.code : err) + "). Periksa login dan Firestore Rules."));
+      sub("batches", (a) => { store.batches = a; });
+      sub("products", (a) => { store.products = a; });
+      sub("personnel", (a) => { store.personnel = a; });
+      onSnapshot(doc(db, "workspaces", "main", "meta", "kpi_points"), (snap) => {
+        try { store.points = snap.exists() ? JSON.parse(snap.data().points || "{}") : {}; } catch (e) { store.points = {}; }
+        render();
+      }, () => {});
+    }
+
+    let started = false;
+    onAuthStateChanged(auth, (user) => {
+      clearTimeout(window.__wd);
+      if (!user) { location.replace("login.html"); return; }
+      $("user-email").textContent = user.displayName || user.email || "";
+      document.documentElement.classList.remove("auth-pending");
+      if (!started) { started = true; listen(getFirestore(app)); render(); }
+    }, (err) => window.__authFail("Gagal memeriksa login: " + (err && err.code ? err.code : err)));
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>

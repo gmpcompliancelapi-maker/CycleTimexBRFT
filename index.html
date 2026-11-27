@@ -347,6 +347,7 @@
       <div class="px-5 pt-3 bg-white border-b border-slate-200 flex gap-1" role="tablist">
         <button type="button" id="md-tab-products-btn" role="tab" onclick="setMasterTab('products')" class="px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-blue-600 text-blue-700">Produk</button>
         <button type="button" id="md-tab-personnel-btn" role="tab" onclick="setMasterTab('personnel')" class="px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800">Personel <span id="md-personnel-count" class="ml-1 px-1.5 py-0.5 rounded-full bg-slate-100 text-[10px]">0</span></button>
+        <button type="button" id="md-tab-kpi-btn" role="tab" onclick="setMasterTab('kpi')" class="px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800">Nilai KPI</button>
       </div>
 
       <div class="p-5 overflow-y-auto flex flex-col gap-5">
@@ -358,7 +359,7 @@
             <button type="button" onclick="resetMasterProductForm()" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Bersihkan Form</button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
             <div>
               <label for="mp-code-aa" class="block text-xs font-bold text-slate-700 mb-1">Kode Produk AA (Opsional, 2 Karakter)</label>
               <input type="text" id="mp-code-aa" maxlength="2" placeholder="Misal: 61 / AB" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
@@ -367,7 +368,15 @@
               <label for="mp-other-code" class="block text-xs font-bold text-slate-700 mb-1">Kode Lain (Opsional)</label>
               <input type="text" id="mp-other-code" placeholder="Kode bukan 2 karakter" title="Hanya sebagai referensi; tidak dipakai untuk deteksi No. Bets" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl uppercase focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
-            <div class="sm:col-span-2">
+            <div>
+              <label for="mp-line" class="block text-xs font-bold text-slate-700 mb-1">Line</label>
+              <select id="mp-line" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600">
+                <option value="">— Belum diatur</option>
+                <option value="1">Line 1</option>
+                <option value="2">Line 2</option>
+              </select>
+            </div>
+            <div class="sm:col-span-3">
               <label for="mp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama Produk <span class="text-red-600">*</span></label>
               <input type="text" id="mp-name" required placeholder="Contoh: Paracetamol 500mg Kaplet" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
             </div>
@@ -415,6 +424,7 @@
                 <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
                   <th class="py-2.5 px-4">Kode AA</th>
                   <th class="py-2.5 px-4">Nama Produk</th>
+                  <th class="py-2.5 px-4">Line</th>
                   <th class="py-2.5 px-4">Default Dokumen Wajib</th>
                   <th class="py-2.5 px-4 text-right">Aksi</th>
                 </tr>
@@ -437,6 +447,14 @@
             <div>
               <label for="pp-name" class="block text-xs font-bold text-slate-700 mb-1">Nama <span class="text-red-600">*</span></label>
               <input type="text" id="pp-name" autocomplete="off" placeholder="Contoh: Rina" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600" />
+            </div>
+            <div>
+              <label for="pp-line" class="block text-xs font-bold text-slate-700 mb-1">Line (untuk Pelaksana)</label>
+              <select id="pp-line" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-600">
+                <option value="">— Belum diatur</option>
+                <option value="1">Line 1</option>
+                <option value="2">Line 2</option>
+              </select>
             </div>
             <div>
               <span class="block text-xs font-bold text-slate-700 mb-1">Peran</span>
@@ -463,6 +481,7 @@
                 <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
                   <th class="py-2.5 px-4">Nama</th>
                   <th class="py-2.5 px-4">Peran</th>
+                  <th class="py-2.5 px-4">Line</th>
                   <th class="py-2.5 px-4">Status</th>
                   <th class="py-2.5 px-4 text-right">Aksi</th>
                 </tr>
@@ -472,6 +491,30 @@
           </div>
         </div>
         <p class="text-[11px] text-slate-500">Personel dinonaktifkan (bukan dihapus) bila sudah tidak bertugas: namanya hilang dari pilihan baru, tetapi riwayat batch lama tetap menyimpan nama tersebut.</p>
+       </div>
+
+       <!-- TAB NILAI KPI -->
+       <div id="md-tab-kpi" class="hidden space-y-4 shrink-0">
+        <div class="px-3 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-900 leading-relaxed">
+          Poin KPI per dokumen untuk Pelaksana. <b>Line</b> dokumen mengikuti Line produk (Master Produk). Nilai di sini <b>terkunci pada dokumen saat First Check disimpan</b>: mengubahnya tidak memengaruhi pemeriksaan yang sudah tercatat, hanya yang berikutnya.
+        </div>
+        <p id="kpi-admin-note" class="hidden px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-800"></p>
+        <div class="border border-slate-200 rounded-2xl overflow-hidden shrink-0">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
+                <th class="py-2.5 px-4">Dokumen</th>
+                <th class="py-2.5 px-4">Poin Line 1</th>
+                <th class="py-2.5 px-4">Poin Line 2</th>
+              </tr>
+            </thead>
+            <tbody id="kpi-tbody" class="divide-y divide-slate-100 text-xs"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[11px] text-slate-500">Kosongkan kolom bila dokumen tidak dinilai pada line tersebut.</span>
+          <button type="button" id="kpi-save-btn" onclick="saveKpiTab()" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition">Simpan Nilai KPI</button>
+        </div>
        </div>
       </div>
 
@@ -510,6 +553,7 @@
         <details id="more-menu" class="relative">
           <summary class="list-none cursor-pointer select-none px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition" style="list-style:none">⋯ Lainnya</summary>
           <div class="absolute left-0 mt-1.5 z-40 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex flex-col gap-1">
+            <a href="kpi.html" class="block px-3 py-2 rounded-lg text-xs font-semibold text-blue-700 hover:bg-blue-50 transition">KPI Pelaksana (halaman baru)</a>
             <button type="button" onclick="closeMoreMenu(); resetDemoData()" class="text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Reset Data Demo</button>
             <button type="button" onclick="closeMoreMenu(); clearAllData()" class="text-left px-3 py-2 rounded-lg text-xs font-semibold text-red-700 hover:bg-red-50 transition">Kosongkan Data (mulai dari awal)</button>
           </div>
@@ -1050,6 +1094,106 @@
         return window.confirm(`Batch ${batchLabel(batch)} masih punya ${sm.open} perbaikan BRFT berstatus Open (belum kembali).\n\nTetap lanjutkan Save DPJ (rilis)?`);
       }
 
+
+      /* ===================== NILAI KPI (poin per dokumen per line) ===================== */
+      const KPI_STORAGE_KEY = "ct_kpi_points_v1";
+      let kpiPoints = {};   // { PP: { "1": 3, "2": 4 }, ... }
+
+      function loadKpiPoints() {
+        try {
+          const raw = window.localStorage ? window.localStorage.getItem(KPI_STORAGE_KEY) : null;
+          const parsed = raw ? JSON.parse(raw) : {};
+          kpiPoints = parsed && typeof parsed === "object" ? parsed : {};
+        } catch (err) { kpiPoints = {}; }
+      }
+
+      function persistKpiPoints() {
+        try { if (window.localStorage) window.localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(kpiPoints)); } catch (e) {}
+        if (window.__ctSync && window.__ctSync.onKpiPointsSaved) window.__ctSync.onKpiPointsSaved(cloneObj(kpiPoints));
+      }
+
+      // Mengembalikan angka, atau null bila belum diatur
+      function getKpiPoint(code, line) {
+        const row = kpiPoints && kpiPoints[code];
+        if (!row) return null;
+        const v = row[String(line)];
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function renderKpiTab() {
+        const tbody = document.getElementById("kpi-tbody");
+        if (!tbody) return;
+        const manage = canManageMaster();
+        tbody.innerHTML = DOC_LIST.map(def => {
+          const cell = (line) => {
+            const v = getKpiPoint(def.code, line);
+            return `<input type="number" min="0" step="0.5" id="kpi-${def.code}-${line}" value="${v === null ? "" : v}" ${manage ? "" : "disabled"} placeholder="—" class="w-24 px-2.5 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/25 disabled:bg-slate-100" />`;
+          };
+          return `<tr><td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(def.code)} <span class="font-medium text-slate-500">— ${escapeHtml(def.label)}</span></td><td class="py-2.5 px-4">${cell(1)}</td><td class="py-2.5 px-4">${cell(2)}</td></tr>`;
+        }).join("");
+        const note = document.getElementById("kpi-admin-note");
+        const btn = document.getElementById("kpi-save-btn");
+        if (note) { note.textContent = manage ? "" : "Hanya admin yang dapat mengubah Nilai KPI."; note.classList.toggle("hidden", manage); }
+        if (btn) btn.classList.toggle("hidden", !manage);
+      }
+
+      function saveKpiTab() {
+        if (!canManageMaster()) { showToast("Hanya admin yang dapat mengubah Nilai KPI.", "error"); return; }
+        const next = {};
+        DOC_LIST.forEach(def => {
+          next[def.code] = {};
+          [1, 2].forEach(line => {
+            const raw = document.getElementById(`kpi-${def.code}-${line}`).value;
+            if (raw !== "" && Number.isFinite(Number(raw)) && Number(raw) >= 0) next[def.code][String(line)] = Number(raw);
+          });
+        });
+        kpiPoints = next;
+        persistKpiPoints();
+        showToast("Nilai KPI disimpan. Berlaku untuk First Check berikutnya.", "success");
+      }
+
+      // Produk milik batch: lewat kode AA pada No. Bets (AABBC), atau lewat kesamaan nama produk
+      function productForBatch(batch) {
+        const bets = normalizeBets(batch.batchNo || "");
+        if (/^[A-Z0-9]{2}[A-Z0-9]{2}[0-9]$/.test(bets)) {
+          const byAA = masterProducts.find(p => p.codeAA && String(p.codeAA).toUpperCase() === bets.slice(0, 2));
+          if (byAA) return byAA;
+        }
+        const nm = String(batch.productName || String(batch.batchName || "").split(" — Bets ")[0]).trim().toLowerCase();
+        return nm ? (masterProducts.find(p => String(p.name || "").trim().toLowerCase() === nm) || null) : null;
+      }
+
+      function kpiLineForBatch(batch) {
+        const p = productForBatch(batch);
+        const l = p ? Number(p.line) : 0;
+        return (l === 1 || l === 2) ? l : null;
+      }
+
+      // Kunci line & poin pada dokumen saat First Check tercatat (tidak berubah walau master diubah)
+      function stampKpiForBatch(batch) {
+        if (!batch || !batch.docs) return false;
+        let changed = false;
+        const line = kpiLineForBatch(batch);
+        DOC_LIST.forEach(def => {
+          const d = batch.docs[def.code];
+          if (!d) return;
+          if (d.required && d.firstCheckTime && d.firstPic) {
+            if (d.kpiLine === undefined) {
+              d.kpiLine = line;
+              d.kpiPoints = line ? getKpiPoint(def.code, line) : null;
+              d.kpiStampedAt = new Date().toISOString();
+              changed = true;
+            }
+          } else if (d.kpiLine !== undefined && !d.firstCheckTime) {
+            delete d.kpiLine; delete d.kpiPoints; delete d.kpiStampedAt;
+            changed = true;
+          }
+        });
+        return changed;
+      }
+
       /* ===================== MASTER PERSONEL (First Check / Second Check / Save DPJ) ===================== */
       const PERSONNEL_STORAGE_KEY = "ct_master_personel_v1";
       // Isi dengan email admin untuk membatasi siapa yang boleh mengubah Master Personel.
@@ -1119,16 +1263,19 @@
       }
 
       function setMasterTab(tab) {
-        masterTab = tab === "personnel" ? "personnel" : "products";
-        const isP = masterTab === "personnel";
-        document.getElementById("md-tab-products").classList.toggle("hidden", isP);
-        document.getElementById("md-tab-personnel").classList.toggle("hidden", !isP);
+        masterTab = tab === "personnel" ? "personnel" : (tab === "kpi" ? "kpi" : "products");
+        const ids = { products: "md-tab-products", personnel: "md-tab-personnel", kpi: "md-tab-kpi" };
+        Object.keys(ids).forEach(k => {
+          const el = document.getElementById(ids[k]);
+          if (el) el.classList.toggle("hidden", k !== masterTab);
+        });
         const on = "px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-blue-600 text-blue-700";
         const off = "px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-800";
-        document.getElementById("md-tab-products-btn").className = isP ? off : on;
-        const pb = document.getElementById("md-tab-personnel-btn");
-        pb.className = isP ? on : off;
-        if (isP) renderPersonnelTable();
+        document.getElementById("md-tab-products-btn").className = masterTab === "products" ? on : off;
+        document.getElementById("md-tab-personnel-btn").className = masterTab === "personnel" ? on : off;
+        document.getElementById("md-tab-kpi-btn").className = masterTab === "kpi" ? on : off;
+        if (masterTab === "personnel") renderPersonnelTable();
+        if (masterTab === "kpi") renderKpiTab();
       }
 
       function renderPersonnelTable() {
@@ -1154,11 +1301,11 @@
           .sort((a, b) => (a.active === false) - (b.active === false) || String(a.name).localeCompare(String(b.name), "id"));
 
         if (masterPersonnel.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada personel. Tambahkan nama di atas, atau klik <b>Impor nama dari data lama</b>.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">Belum ada personel. Tambahkan nama di atas, atau klik <b>Impor nama dari data lama</b>.</td></tr>`;
           return;
         }
         if (list.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Tidak ada nama yang cocok.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">Tidak ada nama yang cocok.</td></tr>`;
           return;
         }
         tbody.innerHTML = list.map(p => {
@@ -1178,6 +1325,7 @@
             <tr class="hover:bg-slate-50 ${inactive ? "opacity-60" : ""}">
               <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(p.name)}</td>
               <td class="py-2.5 px-4"><div class="flex flex-wrap gap-1">${roles || "—"}</div></td>
+              <td class="py-2.5 px-4">${p.line ? `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">Line ${escapeHtml(String(p.line))}</span>` : ((p.roles || []).includes("first") ? `<span class="text-amber-700 font-semibold">belum diatur</span>` : `<span class="text-slate-400">—</span>`)}</td>
               <td class="py-2.5 px-4">${status}</td>
               <td class="py-2.5 px-4 text-right whitespace-nowrap">${actions}</td>
             </tr>`;
@@ -1187,6 +1335,7 @@
       function resetPersonForm() {
         editingPersonId = null;
         document.getElementById("pp-name").value = "";
+        document.getElementById("pp-line").value = "";
         document.getElementById("pp-role-first").checked = true;
         document.getElementById("pp-role-second").checked = false;
         document.getElementById("pp-form-title").textContent = "Tambah Personel";
@@ -1200,17 +1349,19 @@
         const roles = [];
         if (document.getElementById("pp-role-first").checked) roles.push("first");
         if (document.getElementById("pp-role-second").checked) roles.push("second");
+        const line = Number(document.getElementById("pp-line").value) || "";
         if (!name) { showToast("Nama wajib diisi.", "error"); return; }
         if (roles.length === 0) { showToast("Pilih minimal satu peran.", "error"); return; }
+        if (roles.includes("first") && !line) { showToast("Pelaksana harus dipilihkan Line (1 atau 2) untuk KPI.", "error"); return; }
         const dup = masterPersonnel.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== editingPersonId);
         if (dup) { showToast(`Nama "${dup.name}" sudah ada di daftar.`, "error"); return; }
 
         if (editingPersonId) {
           const idx = masterPersonnel.findIndex(p => p.id === editingPersonId);
-          if (idx !== -1) masterPersonnel[idx] = { ...masterPersonnel[idx], name, roles };
+          if (idx !== -1) masterPersonnel[idx] = { ...masterPersonnel[idx], name, roles, line };
           showToast(`Personel ${name} diperbarui.`, "success");
         } else {
-          masterPersonnel.push({ id: `psn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`, name, roles, active: true });
+          masterPersonnel.push({ id: `psn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`, name, roles, line, active: true });
           showToast(`Personel ${name} ditambahkan.`, "success");
         }
         savePersonnel();
@@ -1223,6 +1374,7 @@
         if (!p || !canManageMaster()) return;
         editingPersonId = id;
         document.getElementById("pp-name").value = p.name;
+        document.getElementById("pp-line").value = p.line ? String(p.line) : "";
         document.getElementById("pp-role-first").checked = (p.roles || []).includes("first");
         document.getElementById("pp-role-second").checked = (p.roles || []).includes("second");
         document.getElementById("pp-form-title").textContent = "Edit Personel";
@@ -3000,6 +3152,7 @@
           }
           d.firstCheckTime = dateVal;
           d.firstPic = picVal || "Pelaksana";
+          stampKpiForBatch(batch);
           saveBatches();
           closeDocModal();
           renderDashboard();
@@ -3404,6 +3557,7 @@
         }
 
         const savedCopy = cloneObj(formDraft);
+        stampKpiForBatch(savedCopy);
         if (editingOriginalId) {
           const idx = batches.findIndex(b => b.id === editingOriginalId);
           if (idx !== -1) batches[idx] = savedCopy;
@@ -3462,6 +3616,7 @@
         }
 
         const savedCopy = cloneObj(formDraft);
+        stampKpiForBatch(savedCopy);
         if (editingOriginalId) {
           const idx = batches.findIndex(b => b.id === editingOriginalId);
           if (idx !== -1) batches[idx] = savedCopy;
@@ -3580,6 +3735,7 @@
         document.getElementById("mp-form-title").textContent = "Tambah Produk ke Master";
         document.getElementById("mp-code-aa").value = "";
         document.getElementById("mp-other-code").value = "";
+        document.getElementById("mp-line").value = "";
         document.getElementById("mp-name").value = "";
         document.getElementById("mp-submit-btn").textContent = "Simpan Produk";
         renderMasterDefaultDocCheckboxes();
@@ -3615,6 +3771,7 @@
         document.getElementById("mp-form-title").textContent = `Edit Produk — ${prod.name}`;
         document.getElementById("mp-code-aa").value = prod.codeAA || "";
         document.getElementById("mp-other-code").value = prod.otherCode || "";
+        document.getElementById("mp-line").value = prod.line ? String(prod.line) : "";
         document.getElementById("mp-name").value = prod.name || "";
         document.getElementById("mp-submit-btn").textContent = "Perbarui Produk";
         renderMasterDefaultDocCheckboxes();
@@ -3668,7 +3825,9 @@
         const head = rows[0].map(c => clean(c).toLowerCase());
         const hc = head.findIndex(h => /kode/.test(h));
         const hn = head.findIndex(h => /nama/.test(h));
-        if (hc >= 0 && hn >= 0) { codeIdx = hc; nameIdx = hn; start = 1; }
+        const hl = head.findIndex(h => /^line\b/.test(h));
+        let lineIdx = -1;
+        if (hc >= 0 && hn >= 0) { codeIdx = hc; nameIdx = hn; start = 1; lineIdx = hl; }
         else {
           const cols = Math.max.apply(null, rows.map(r => r.length));
           if (cols >= 3 && rows.slice(0, 20).every(r => /^\d+$/.test(clean(r[0])))) { codeIdx = 1; nameIdx = 2; }
@@ -3690,7 +3849,8 @@
         for (let i = start; i < rows.length; i++) {
           const code = clean(rows[i][codeIdx]);
           const name = clean(rows[i][nameIdx]);
-          const item = { n: i + 1, code, name, aa: "", other: "", status: "", note: "", targetId: "" };
+          const lineRaw = lineIdx >= 0 ? clean(rows[i][lineIdx]).replace(/[^0-9]/g, "") : "";
+          const item = { n: i + 1, code, name, aa: "", other: "", line: (lineRaw === "1" || lineRaw === "2") ? Number(lineRaw) : 0, status: "", note: "", targetId: "" };
           if (!name) { item.status = "skip"; item.note = "Nama kosong"; plan.push(item); continue; }
 
           if (code.length === 2) item.aa = code.toUpperCase();
@@ -3705,7 +3865,10 @@
             seenAA.set(item.aa, name);
             const ex = byAA.get(item.aa);
             if (!ex) { item.status = "new"; item.note = "Produk baru (Kode AA)"; }
-            else if (String(ex.name).toLowerCase() === name.toLowerCase()) { item.status = "same"; item.note = "Sudah ada, nama sama"; }
+            else if (String(ex.name).toLowerCase() === name.toLowerCase()) {
+              if (item.line && Number(ex.line) !== item.line) { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui Line menjadi ${item.line}`; }
+              else { item.status = "same"; item.note = "Sudah ada, nama sama"; }
+            }
             else if (conflictMode === "update") { item.status = "update"; item.targetId = ex.id; item.note = `Perbarui nama (sebelumnya: ${ex.name})`; }
             else { item.status = "skip"; item.note = `Kode sudah dipakai: ${ex.name} (dilewati)`; }
           } else {
@@ -3779,11 +3942,12 @@
               defaultDocs: docs.slice()
             };
             if (r.other) prod.otherCode = r.other;
+            if (r.line) prod.line = r.line;
             masterProducts.push(prod);
             added++;
           } else if (r.status === "update") {
             const prod = masterProducts.find(x => x.id === r.targetId);
-            if (prod) { prod.name = r.name; if (r.other) prod.otherCode = r.other; updated++; }
+            if (prod) { prod.name = r.name; if (r.other) prod.otherCode = r.other; if (r.line) prod.line = r.line; updated++; }
           }
         });
         saveProducts();
@@ -3839,6 +4003,7 @@
         const codeAA = (document.getElementById("mp-code-aa").value || "").trim().toUpperCase();
         const name = (document.getElementById("mp-name").value || "").trim();
         const otherCode = (document.getElementById("mp-other-code").value || "").trim().toUpperCase();
+        const lineVal = Number(document.getElementById("mp-line").value) || "";
 
         if (!name) {
           showToast("Nama Produk wajib diisi.", "error");
@@ -3863,6 +4028,7 @@
           if (idx !== -1) {
             masterProducts[idx] = { id: editingProductId, codeAA, name, defaultDocs: docsToSave };
             if (otherCode) masterProducts[idx].otherCode = otherCode;
+            if (lineVal) masterProducts[idx].line = lineVal;
           }
           showToast(`Master produk "${name}" diperbarui.`, "success");
         } else {
@@ -3873,6 +4039,7 @@
             defaultDocs: docsToSave
           };
           if (otherCode) newProd.otherCode = otherCode;
+          if (lineVal) newProd.line = lineVal;
           masterProducts.unshift(newProd);
           showToast(`Produk "${name}" ditambahkan ke Master Produk.`, "success");
         }
@@ -3895,11 +4062,11 @@
         const filtered = masterProducts.filter(p => productMatchesQuery(p, q));
 
         if (masterProducts.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Belum ada produk di Master Produk.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">Belum ada produk di Master Produk.</td></tr>`;
           return;
         }
         if (filtered.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-slate-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="py-6 px-4 text-center text-slate-500">Tidak ada produk yang cocok dengan pencarian.</td></tr>`;
           return;
         }
 
@@ -3919,6 +4086,7 @@
             <tr class="hover:bg-slate-50">
               <td class="py-2.5 px-4 whitespace-nowrap">${aaBadge}</td>
               <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(p.name)}</td>
+              <td class="py-2.5 px-4">${p.line ? `<span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">Line ${escapeHtml(String(p.line))}</span>` : `<span class="text-slate-400">—</span>`}</td>
               <td class="py-2.5 px-4"><div class="flex flex-wrap gap-1">${docsBadges}</div></td>
               <td class="py-2.5 px-4 text-right whitespace-nowrap">
                 <button type="button" onclick="editMasterProduct('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 mr-1 transition">Edit</button>
@@ -3928,7 +4096,7 @@
           `;
         }).join("");
         const moreRow = filtered.length > shown.length
-          ? `<tr><td colspan="4" class="py-3 px-4 text-center text-[11px] text-slate-500 bg-slate-50">Menampilkan ${shown.length} dari ${filtered.length} produk — gunakan kotak pencarian untuk mempersempit.</td></tr>`
+          ? `<tr><td colspan="5" class="py-3 px-4 text-center text-[11px] text-slate-500 bg-slate-50">Menampilkan ${shown.length} dari ${filtered.length} produk — gunakan kotak pencarian untuk mempersempit.</td></tr>`
           : "";
         tbody.innerHTML = rowsHtml + moreRow;
       }
@@ -3956,6 +4124,7 @@
       window.onIncomingDateChange = onIncomingDateChange;
       window.onIncomingTimeInput = onIncomingTimeInput;
       window.setMasterTab = setMasterTab;
+      window.saveKpiTab = saveKpiTab;
       window.renderPersonnelTable = renderPersonnelTable;
       window.saveMasterPerson = saveMasterPerson;
       window.editMasterPerson = editMasterPerson;
@@ -4020,6 +4189,12 @@
         getBatches: function () { return cloneObj(batches); },
         getProducts: function () { return cloneObj(masterProducts); },
         getPersonnel: function () { return cloneObj(masterPersonnel); },
+        applyRemoteKpiPoints: function (obj) {
+          kpiPoints = obj && typeof obj === "object" ? obj : {};
+          try { if (window.localStorage) window.localStorage.setItem(KPI_STORAGE_KEY, JSON.stringify(kpiPoints)); } catch (e) {}
+          const mm = document.getElementById("master-modal");
+          if (mm && !mm.classList.contains("hidden") && masterTab === "kpi") renderKpiTab();
+        },
         setBrftRepairs: function (arr) { brftRepairs = Array.isArray(arr) ? arr : []; renderDashboard(); },
         applyRemotePersonnel: function (arr) {
           masterPersonnel = arr;
@@ -4052,6 +4227,7 @@
         if (picker) picker.value = activeDateStr;
         loadProducts();
         loadPersonnel();
+        loadKpiPoints();
         loadBatches();
         renderDashboard();
       });
@@ -4310,6 +4486,19 @@
       createSync("batches",  "b_", bridge.getBatches,  bridge.applyRemoteBatches,  "onBatchesSaved");
       createSync("products", "p_", bridge.getProducts, bridge.applyRemoteProducts, "onProductsSaved");
       createSync("personnel", "s_", bridge.getPersonnel, bridge.applyRemotePersonnel, "onPersonnelSaved");
+
+      // Nilai KPI: satu dokumen kecil (meta/kpi_points), sinkron dua arah
+      try {
+        const kpiRef = doc(db, "workspaces", "main", "meta", "kpi_points");
+        bridge.onKpiPointsSaved = (obj) => {
+          setDoc(kpiRef, { points: JSON.stringify(obj), updatedAt: serverTimestamp(), updatedBy: user.email || user.uid })
+            .catch((err) => toast("Gagal menyimpan Nilai KPI ke cloud: " + (err.code || err.message), "error"));
+        };
+        onSnapshot(kpiRef, (snap) => {
+          if (!snap.exists() || (snap.metadata && snap.metadata.hasPendingWrites)) return;
+          try { bridge.applyRemoteKpiPoints(JSON.parse(snap.data().points || "{}")); } catch (e) {}
+        }, (err) => console.warn("Nilai KPI tidak dapat dibaca:", err && err.code));
+      } catch (e) { console.warn(e); }
 
       // Baca-saja: perbaikan dari aplikasi BRFT (tidak memengaruhi status sinkronisasi bila aturan belum dibuka)
       try {

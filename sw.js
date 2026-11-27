@@ -7,7 +7,7 @@
    - API Firebase (auth/firestore)    : TIDAK di-cache, langsung ke jaringan
    Naikkan CACHE_VERSION setiap kali file di repo diubah agar cache lama dibuang. */
 
-const CACHE_VERSION = "v1.2.0";
+const CACHE_VERSION = "v1.3.0";
 const SHELL_CACHE = `ct-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `ct-runtime-${CACHE_VERSION}`;
 
@@ -15,6 +15,7 @@ const SHELL_ASSETS = [
   "./",
   "./index.html",
   "./login.html",
+  "./kpi.html",
   "./offline.html",
   "./manifest.json",
   "./favicon.ico",
